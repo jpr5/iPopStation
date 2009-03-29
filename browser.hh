@@ -1,6 +1,10 @@
 #ifndef PF_BROWSER_HH
 #define PF_BROWSER_HH
 
+/*
+ * $Id$
+ */
+
 #include <stdint.h>
 
 #include <QWidget>

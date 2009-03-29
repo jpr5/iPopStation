@@ -1,6 +1,9 @@
 #ifndef PS_ALBUM_HH
 #define PS_ALBUM_HH
 
+/*
+ * $Id$
+ */
 
 #include "browser.hh"
 

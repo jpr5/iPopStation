@@ -1,3 +1,6 @@
+/*
+ * $Id$
+ */
 
 // this is the program the generate the pictureflow table
 #include <stdio.h>

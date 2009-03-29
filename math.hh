@@ -1,6 +1,10 @@
 #ifndef PS_MATH_HH
 #define PS_MATH_HH
 
+/*
+ * $Id$
+ */
+
 #include <stdint.h>
 
 // for fixed-point arithmetic, we need minimum 32-bit long
