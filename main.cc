@@ -2,6 +2,8 @@
  * $Id$
  */
 
+#define MINE 1
+
 #include <string.h>
 
 #include <QApplication>
@@ -9,10 +11,11 @@
 #include <QFileInfo>
 #include <QSplashScreen>
 
+#if MINE
 #include "album.hh"
+#else
 #include "pictureflow.h"
-
-#define MINE 1
+#endif
 
 int main(int argc, char **argv) {
 
