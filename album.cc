@@ -317,6 +317,19 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t col1, int16_t col2) {
     return rect;
 }
 
+bool AlbumBrowser::addCover(const QString &path_) {
+    QImage image_;
+
+    if (!image_.load(path_)) {
+        printf("!! unable to load %s", (char*)path_.toAscii().data());
+        return false;
+    }
+
+    addCover(image_, path_);
+
+    return true;
+}
+
 void AlbumBrowser::addCover(const QImage &image_, const QString &path_) {
     AlbumCover a(image_, path_);
     a.process(c_width, c_height);

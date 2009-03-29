@@ -50,13 +50,16 @@ int main(int argc, char **argv) {
     for (i = list.begin(); i != list.end(); i++) {
         QString msg, file = (*i).absoluteFilePath();
 
+#if MINE
+        if (albumBrowser->addCover(file)) {
+#else
         if (pixmap.load(file)) {
+#endif
             printf("Loaded %s\n", (char*)file.toAscii().data());
             msg.sprintf("Loaded %s", (char*)file.toAscii().data());
             splash.showMessage(msg, Qt::AlignLeft, Qt::white);
 
 #if MINE
-            albumBrowser->addCover(pixmap.toImage(), file);
 #else
             w->addSlide(pixmap);
 #endif

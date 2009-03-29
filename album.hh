@@ -74,6 +74,7 @@ class AlbumBrowser : public AsyncBrowser {
     void loadCovers(QList<QString>);
     void resetCovers(void);
 
+    bool addCover(const QString &);
     void addCover(const QImage &, const QString & = "");
     QRect renderCover(AlbumCover &, int16_t = -1, int16_t = -1);
 
