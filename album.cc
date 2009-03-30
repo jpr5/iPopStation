@@ -112,7 +112,7 @@ AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncBrowser(parent) {
     c_width  = 135;
     c_height = 175;
 
-    f_fade = 256;
+    f_fade = 255;
     f_frame = 0;
     f_direction = 0;
 }
@@ -402,7 +402,7 @@ void AlbumBrowser::animate(void) {
 
         c_focus     = c_idx;
         f_frame     = c_idx << 16;
-        f_fade      = 256;
+        f_fade      = 255;
         f_direction = 0;
 
         arrangeCovers();
