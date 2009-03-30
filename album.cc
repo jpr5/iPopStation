@@ -107,98 +107,122 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
 
 AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncBrowser(parent) {
     printf("** albumBrowser\n");
-    foo = 0;
-
     c_zoom   = 100;
     c_width  = 135;
     c_height = 175;
 
-    //    slideFrame = step = target = 0;
-    //    fade = 256;
+    f_fade = 256;
+    f_frame = 0;
+    f_direction = 0;
 }
 
 AlbumBrowser::~AlbumBrowser(void) {
 }
 
 
-void AlbumBrowser::animate(void) {
-    printf("** animate\n");
+void AlbumBrowser::arrangeCovers(int32_t factor) {
+    /*
+     * NOTE: may be able to do these calculations once and just assign
+     * the negatives of the left to the right.  [ middle+1 = -(middle-1) ]
+     */
 
-    if (foo++ == 5) {
-        doAnimate(false);
-        foo = 0;
+    for (int16_t i = c_focus - 1; i != -1; i--) {
+        AlbumCover &a = covers[i];
+        a.angle = tilt_factor;
+        a.cx    = -(r_offsetX + (spacing_offset*(c_focus-1-i)*PFREAL_ONE) + factor);
+        a.cy    = r_offsetY;
+
+        printf("cover[%u] = %i, %i, %i\n", i, a.angle, a.cx, a.cy);
     }
 
-    doRender();
+    for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
+        AlbumCover &a = covers[i];
+        a.angle = -tilt_factor;
+        a.cx    = r_offsetX + (spacing_offset*(i-c_focus-1)*PFREAL_ONE) + factor;
+        a.cy    = r_offsetY;
+
+        printf("cover[%u] = %i, %i, %i\n", i, a.angle, a.cx, a.cy);
+    }
+}
+
+
+void AlbumBrowser::prepRender(void) {
+    printf("** prepRender()\n");
+
+    uint16_t width  = (buffer.size().width()  + 1) / 2;
+    uint16_t height = (buffer.size().height() + 1) / 2;
+
+    rays.resize(width * 2);
+    uint16_t i;
+    for (i = 0; i < width; i++) {
+        PFreal gg = (PFREAL_HALF + i * PFREAL_ONE) / (2 * height);
+        rays[width-i-1] = -gg;
+        rays[width+i]   =  gg;
+    }
+
+    r_offsetX =
+        ((c_width / 2) * (PFREAL_ONE - fcos(tilt_factor))) +
+        (c_width * PFREAL_ONE);
+
+    r_offsetY =
+        ((c_width / 2) * fsin(tilt_factor)) +
+        (c_width * PFREAL_ONE / 4);
+
+    c_focus = covers.size()/2;
+    f_frame = c_focus << 16;
+
+    arrangeCovers();
+
+    noCover = QImage();
 }
 
 void AlbumBrowser::render(void) {
     printf("** render\n");
 
-#if 0
-    AlbumCover &a = covers[covers.size()/2];
-    uint16_t at_x = (buffer.size().width()  - a.image.size().width())/2;
-    uint16_t at_y = (buffer.size().height() - a.image.size().height())/2;
-
-    QPainter p(&buffer);
-
-    p.translate(at_x+1, at_y+1);
-    //    p.shear(0.F, 0.4F);
-    //    p.scale(.5F, 1);
-    p.drawImage(0, 0, a.image);
-#endif
+    /*
+     * Clean out the off-screen buffer and start with the in-focus
+     * cover.
+     */
 
     buffer.fill(Qt::black);
 
-    /* TODO: here a decision should be made about how many covers to
-     * render in either direction.
-     *
-     * NOTE: when doing animation and updating slide positions,
-     * angles, cx & cy -- there should be an opportunity to figure out
-     * where they would land inside buffer.size().width().  look at
-     * (xi) calc which is figuring out x drawing index.
-     *
-     * IDEA: maybe when rs.isEmpty()?
-     */
-
     printf("** c_focus = %u (of %u)\n", c_focus, covers.size());
 
-    /*
-     * Start with middle slide.
-     */
+    uint16_t x_bound;
+    QRect r, rs;
 
-    QRect r = renderCover(covers[c_focus]);
+    r = renderCover(covers[c_focus]);
+    printf("** initial bound: [%u, %u]\n", r.left(), r.right());
 
-    uint16_t l_bound = r.left();
-    uint16_t r_bound = r.right();
-    printf("initial l_bound, r_bound = %u, %u\n", l_bound, r_bound);
-
+    x_bound = r.left();
     for (int16_t i = c_focus - 1; i != -1; i--) {
         printf("-> cover %i\n", i);
-        QRect rs = renderCover(covers[i], 0, l_bound-1);
+        rs = renderCover(covers[i], 0, x_bound-1);
         if (rs.isEmpty()) {
             printf("** didn't render cover %u, stopping\n", i);
             break;
         }
 
-        l_bound = rs.left();
+        x_bound = rs.left();
     }
 
+    x_bound = r.right();
     for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
         printf("-> cover %i\n", i);
-        QRect rs = renderCover(covers[i], r_bound+1, buffer.width());
+        rs = renderCover(covers[i], x_bound+1, buffer.width());
         if (rs.isEmpty()) {
             printf("** didn't render cover %u, stopping\n", i);
             break;
         }
 
-        r_bound = rs.right();
+        x_bound = rs.right();
     }
 
+    QWidget::update();
 }
 
-QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t col1, int16_t col2) {
-    printf("** renderCover(%i, %i)\n", col1, col2);
+QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
+    printf("** renderCover(%i, %i)\n", lb, rb);
 
     QRect rect(0, 0, 0, 0);
     QImage &src = a.image;
@@ -208,15 +232,15 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t col1, int16_t col2) {
     int h = buffer.height();
     int w = buffer.width();
 
-    if (col1 > col2)
-        qSwap(col1, col2);
+    if (lb > rb)
+        qSwap(lb, rb);
 
-    col1 = (col1 >= 0) ? col1 : 0;
-    col2 = (col2 >= 0) ? col2 : w-1;
-    col1 = qMin((int)col1, w-1);
-    col2 = qMin((int)col2, w-1);
+    lb = (lb >= 0) ? lb : 0;
+    rb = (rb >= 0) ? rb : w-1;
+    lb = qMin((int)lb, w-1);
+    rb = qMin((int)rb, w-1);
 
-    if (col1 - col2 == 0) {
+    if (lb - rb == 0) {
         printf("!! not rendering invisible slide\n");
         return rect;
     }
@@ -233,12 +257,12 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t col1, int16_t col2) {
     if (xi >= w)
         return rect;
 
-    printf("col1 = %i, col2 = %i, ( xi ) = %i\n", col1, col2, xi);
+    printf("lb = %i, rb = %i, ( xi ) = %i\n", lb, rb, xi);
 
     bool flag = false;
     rect.setLeft(xi);
 
-    for (int x = qMax(xi, (int)col1); x <= col2; x++) {
+    for (int x = qMax(xi, (int)lb); x <= rb; x++) {
         PFreal hity = 0;
         PFreal fk = rays[x];
         if (sdy) {
@@ -314,7 +338,173 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t col1, int16_t col2) {
 
     rect.setTop(0);
     rect.setBottom(h-1);
+
     return rect;
+}
+
+void AlbumBrowser::animate(void) {
+    printf("** animate\n");
+
+    if (f_direction == 0) {
+        printf("!! animate: no directional change\n");
+        doAnimate(false);
+        return;
+    }
+
+    int16_t c_target = c_focus + f_direction;
+
+    if (c_target < 0 || c_target >= covers.size()) {
+        printf("!! animate: asked to go beyond bounds\n");
+        return;
+    }
+
+    const static uint32_t f_max = 2 * 65536;    // TODO: make this a class constant
+
+    int32_t f_idx = f_frame - (c_target << 16);
+    if (f_idx < 0)
+        f_idx = -f_idx;
+    f_idx = qMin((int)f_idx, (int)f_max);
+
+    // with f_idx bounded by f_max)
+    // IANGLE_MAX * (f_idx - half of max) / (twice the max)
+    int32_t angle  = IANGLE_MAX * (f_idx-f_max/2) / (f_max*2);
+    uint32_t speed = 512 + (16384 * (PFREAL_ONE+fsin(angle))/PFREAL_ONE);
+
+    f_frame += speed * f_direction;
+
+    printf("** animate: angle = %i, speed = %u, f_frame = %i (dir = %i)\n",
+           angle, speed, f_frame, f_direction);
+
+    int32_t c_idx = f_frame >> 16;
+    int32_t pos   = f_frame & 0xffff;
+    int32_t neg   = 65536 - pos;
+    int tick      = (f_direction < 0) ? neg : pos;
+    PFreal ftick  = (tick * PFREAL_ONE) >> 16;
+
+    printf("__ c_idx = %i, pos = %i, neg = %i, tick = %i, ftick = %i\n", c_idx, pos, neg, tick, ftick);
+
+    // track left- and right-most alpha fade
+    f_fade = pos / 256;
+
+    if (f_direction < 0)
+        c_idx++;
+
+    printf("__ c_focus = %i (%i) [%i], c_target = %i\n", c_focus, c_idx, f_direction, c_target);
+
+    AlbumCover *a = &(covers[c_idx]);
+    a->angle = (f_direction * tick * tilt_factor) >> 16;
+    a->cx    = -f_direction * fmul(r_offsetX, ftick);
+    a->cy    = fmul(r_offsetY, ftick);
+
+    // If we have arrived, then just reset everything and display.
+    // NOTE: maybe opportunity to detect this condition earlier and
+    // avoid extra calcs?
+
+    if (c_idx == c_target) {
+
+        c_focus     = c_idx;
+        f_frame     = c_idx << 16;
+        f_fade      = 256;
+        f_direction = 0;
+
+        arrangeCovers();
+
+        doAnimate(false);
+
+    } else {
+
+        /*
+         * Otherwise, we're still transitioning.  Update cover angles and
+         * fade the end-most slides.
+         *
+         * TODO: do we need to fade those end slides?
+         */
+
+        int32_t factor = f_direction * spacing_offset * ftick;
+
+        printf("** animating (factor = %i)\n", factor);
+
+        arrangeCovers(factor);
+
+        if (f_direction > 0) {
+            ftick = (neg * PFREAL_ONE) >> 16;
+            a = &(covers[c_focus+1]);
+            a->angle = -(neg * tilt_factor) >> 16;
+            a->cx    = fmul(r_offsetX, ftick);
+            a->cy    = fmul(r_offsetY, ftick);
+        } else {
+            ftick = (pos * PFREAL_ONE) >> 16;
+            a = &(covers[0]);
+            a->angle = (pos * tilt_factor) >> 16;
+            a->cx    = -fmul(r_offsetX, ftick);
+            a->cy    = fmul(r_offsetY, ftick);
+        }
+    }
+
+    doRender();
+    return;
+
+#if 0
+    if (step < 0)
+        index++;
+
+    if (centerIndex != index) {
+        centerIndex = index;
+        slideFrame = index << 16;
+        centerSlide.slideIndex = centerIndex;
+        for (int i = 0; i < leftSlides.count(); i++)
+            leftSlides[i].slideIndex = centerIndex-1-i;
+        for (int i = 0; i < rightSlides.count(); i++)
+            rightSlides[i].slideIndex = centerIndex+1+i;
+    }
+
+    centerSlide.angle = (step * tick * itilt) >> 16;
+    centerSlide.cx = -step * fmul(offsetX, ftick);
+    centerSlide.cy = fmul(offsetY, ftick);
+
+    if (centerIndex == target) {
+        resetSlides();
+        animateTimer.stop();
+        step = 0;
+        fade = 256;
+        triggerBrowse();
+        return;
+    }
+
+    for (int i = 0; i < leftSlides.count(); i++) {
+        SlideInfo& si = leftSlides[i];
+        si.angle = itilt;
+        si.cx = -(offsetX + spacing*i*PFREAL_ONE + step*spacing*ftick);
+        si.cy = offsetY;
+    }
+
+    for (int i = 0; i < rightSlides.count(); i++) {
+        SlideInfo& si = rightSlides[i];
+        si.angle = -itilt;
+        si.cx = offsetX + spacing*i*PFREAL_ONE - step*spacing*ftick;
+        si.cy = offsetY;
+    }
+
+    if (step > 0) {
+        PFreal ftick = (neg * PFREAL_ONE) >> 16;
+        rightSlides[0].angle = -(neg * itilt) >> 16;
+        rightSlides[0].cx = fmul(offsetX, ftick);
+        rightSlides[0].cy = fmul(offsetY, ftick);
+    } else {
+        PFreal ftick = (pos * PFREAL_ONE) >> 16;
+        leftSlides[0].angle = (pos * itilt) >> 16;
+        leftSlides[0].cx = -fmul(offsetX, ftick);
+        leftSlides[0].cy = fmul(offsetY, ftick);
+    }
+
+    // must change direction ?
+    if (target < index && step > 0)
+        step = -1;
+    else if (target > index && step < 0)
+        step = 1;
+
+    triggerBrowse();
+#endif
 }
 
 bool AlbumBrowser::addCover(const QString &path_) {
@@ -367,62 +557,6 @@ void AlbumBrowser::setCoverSize(QSize s) {
 }
 
 /*
- * TODO: Consider dumping param; just use buffer size and let
- * resizeEvent handle it.
- */
-
-void AlbumBrowser::prepRender(void) {
-    printf("** prepRender()\n");
-
-    uint16_t width  = (buffer.size().width()  + 1) / 2;
-    uint16_t height = (buffer.size().height() + 1) / 2;
-
-    rays.resize(width * 2);
-    uint16_t i;
-    for (i = 0; i < width; i++) {
-        PFreal gg = (PFREAL_HALF + i * PFREAL_ONE) / (2 * height);
-        rays[width-i-1] = -gg;
-        rays[width+i]   =  gg;
-    }
-
-    r_offsetX =
-        ((c_width / 2) * (PFREAL_ONE - fcos(tilt_factor))) +
-        (c_width * PFREAL_ONE);
-
-    r_offsetY =
-        ((c_width / 2) * fsin(tilt_factor)) +
-        (c_width * PFREAL_ONE / 4);
-
-    noCover = QImage();
-
-    c_focus = covers.size()/2;
-
-    /*
-     * NOTE: may be able to do these calculations once and just assign
-     * the negatives of the left to the right.  [ middle+1 = -(middle-1) ]
-     */
-
-    for (int16_t i = c_focus - 1; i != -1; i--) {
-        AlbumCover &a = covers[i];
-        a.angle = tilt_factor;
-        a.cx    = -(r_offsetX + (spacing_offset*(c_focus-1-i)*PFREAL_ONE));
-        a.cy    = r_offsetY;
-        printf("cover[%u] = %i, %i, %i\n", i, a.angle, a.cx, a.cy);
-
-    }
-
-    for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
-        AlbumCover &a = covers[i];
-        a.angle = -tilt_factor;
-        a.cx    = r_offsetX + (spacing_offset*(i-c_focus-1)*PFREAL_ONE);
-        a.cy    = r_offsetY;
-
-        printf("cover[%u] = %i, %i, %i\n", i, a.angle, a.cx, a.cy);
-    }
-
-}
-
-/*
  * (Re)size.  Guaranteed one of these on startup.
  */
 
@@ -451,7 +585,7 @@ void AlbumBrowser::resizeView(const QSize &s) {
 
 
 void AlbumBrowser::resizeEvent(QResizeEvent *e) {
-    printf("** resizeEvent: (%u:%u) -> (%u:%u)\n",
+    printf("** resizeEvent: (%i:%i) -> (%i:%i)\n",
            e->oldSize().width(), e->oldSize().height(),
            e->size().width(),    e->size().height());
 
@@ -461,8 +595,8 @@ void AlbumBrowser::resizeEvent(QResizeEvent *e) {
 }
 
 void AlbumBrowser::paintEvent(QPaintEvent *e) {
-    Q_UNUSED(e);
     printf("** paintEvent\n");
+    Q_UNUSED(e);
 
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, false);
@@ -470,7 +604,16 @@ void AlbumBrowser::paintEvent(QPaintEvent *e) {
 }
 
 void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
-    Q_UNUSED(e);
     printf("** mousePressEvent\n");
-    QWidget::update();
+
+    uint16_t third = size().width() / 3;
+
+    if (e->x() <= third)
+        f_direction = -1;
+    else if (e->x() >= third * 2)
+        f_direction = 1;
+    else
+        ;
+
+    doAnimate();
 }

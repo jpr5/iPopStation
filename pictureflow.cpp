@@ -184,7 +184,7 @@ void PictureFlowPrivate::resetSlides() {
         si.cy = offsetY;
         si.slideIndex = centerIndex-1-i;
 
-        printf("cover[%u] = %i, %i, %i\n", si.slideIndex, si.angle, si.cx, si.cy);
+        printf("cover[%i] = %i, %i, %i\n", si.slideIndex, si.angle, si.cx, si.cy);
     }
 
     rightSlides.clear();
@@ -195,7 +195,7 @@ void PictureFlowPrivate::resetSlides() {
         si.cx = offsetX + spacing*i*PFREAL_ONE;
         si.cy = offsetY;
         si.slideIndex = centerIndex+1+i;
-        printf("cover[%u] = %i, %i, %i\n", si.slideIndex, si.angle, si.cx, si.cy);
+        printf("cover[%i] = %i, %i, %i\n", si.slideIndex, si.angle, si.cx, si.cy);
     }
 }
 
@@ -298,8 +298,6 @@ void PictureFlowPrivate::renderBrowse() {
     int c1 = r.left();
     int c2 = r.right();
 
-    printf("initial c1, c2 = %u, %u\n", c1, c2);
-
     if (step == 0) {
 
         // no animation, boring plain rendering
@@ -383,7 +381,6 @@ QRect PictureFlowPrivate::renderSlide(const SlideInfo &slide, int alpha, int col
 
     col1 = (col1 >= 0) ? col1 : 0;
     col2 = (col2 >= 0) ? col2 : w-1;
-    //    printf("-- col1 = %i, col2 = %i\n", col1, col2);
     col1 = qMin(col1, w-1);
     col2 = qMin(col2, w-1);
 
@@ -394,9 +391,6 @@ QRect PictureFlowPrivate::renderSlide(const SlideInfo &slide, int alpha, int col
     PFreal ys = slide.cy - slideWidth * sdy/2;
     PFreal dist = distance * PFREAL_ONE;
 
-    //    printf("\tcol1 = %i, col2 = %i, sdx = %i, sdy = %i, xs = %i, ys = %i, dist = %i, angle = %i\n",
-    //           col1, col2, sdx, sdy, xs, ys, dist, slide.angle);
-
     int xi = qMax((PFreal)0, (w*PFREAL_ONE/2) + fdiv(xs*h, dist+ys) >> PFREAL_SHIFT);
     if (xi >= w)
         return rect;
@@ -404,11 +398,6 @@ QRect PictureFlowPrivate::renderSlide(const SlideInfo &slide, int alpha, int col
     bool flag = false;
     rect.setLeft(xi);
 
-    printf("\t[%i]\n", slide.angle);
-    printf("\t%i\t%i\t%i\t%i\t%i\n", w, xs, h, dist, ys);
-    printf("\t%i\t%i\t%i\t%i\n", (w*PFREAL_ONE/2), fdiv(xs*h, dist+ys), (w*PFREAL_ONE/2) + fdiv(xs*h, dist+ys), (w*PFREAL_ONE/2) + fdiv(xs*h, dist+ys)  >> PFREAL_SHIFT);
-
-    printf("__ xi = %i, col1 = %i, col2 = %i\n", xi, col1, col2);
     for (int x = qMax(xi, col1); x <= col2; x++) {
         PFreal hity = 0;
         PFreal fk = rays[x];
@@ -548,6 +537,9 @@ void PictureFlowPrivate::animateBrowse() {
     if (step == 0)
         return;
 
+    printf("__ slideFrame = %i, step = %i, target = %i, fade = %i\n",
+           slideFrame, step, target, fade);
+
     int speed = 16384;
 
     // deaccelerate when approaching the target
@@ -567,16 +559,20 @@ void PictureFlowPrivate::animateBrowse() {
     slideFrame += speed*step;
 
     int index = slideFrame >> 16;
-    int pos = slideFrame & 0xffff;
+    int pos   = slideFrame & 0xffff;
     int neg = 65536 - pos;
     int tick = (step < 0) ? neg : pos;
     PFreal ftick = (tick * PFREAL_ONE) >> 16;
+
 
     // the leftmost and rightmost slide must fade away
     fade = pos / 256;
 
     if (step < 0)
         index++;
+
+    printf("__ index = %i (%i) [%i], fade = %i, pos = %i, neg = %i, tick = %i, ftick = %i\n",
+           index, centerIndex, step, fade, pos, neg, tick, ftick);
 
     if (centerIndex != index) {
         centerIndex = index;
@@ -727,6 +723,7 @@ void PictureFlow::paintEvent(QPaintEvent* event) {
 }
 
 void PictureFlow::resizeEvent(QResizeEvent* event) {
+    printf("resizeEvent\n");
     d->resize(width(), height());
     QWidget::resizeEvent(event);
 }
@@ -739,6 +736,7 @@ void PictureFlow::timerEvent(QTimerEvent* event) {
 }
 
 void PictureFlow::mousePressEvent(QMouseEvent* event) {
+    printf("mouseEvent\n");
     int third = size().width() / 3;
 
     if (event->x() <= third)

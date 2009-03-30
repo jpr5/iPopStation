@@ -12,7 +12,6 @@
 typedef int32_t PFreal;
 
 #define PFREAL_SHIFT  10
-#define PFREAL_FACTOR (1 << PFREAL_SHIFT)
 #define PFREAL_ONE    (1 << PFREAL_SHIFT)
 #define PFREAL_HALF   (PFREAL_ONE >> 1)
 

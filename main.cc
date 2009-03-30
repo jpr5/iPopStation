@@ -3,6 +3,7 @@
  */
 
 #define MINE 1
+#define TEST 1
 
 #include <string.h>
 
@@ -23,7 +24,9 @@ int main(int argc, char **argv) {
     argv[argc++] = strdup(arg);
 
     QApplication a(argc, argv);
-    //    QApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
+#if !TEST
+    QApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
+#endif
 
     QPixmap pixmap(QSize(320, 240));
     pixmap.fill(Qt::black);
@@ -40,7 +43,7 @@ int main(int argc, char **argv) {
 
     QDir dir = QDir::current();
     if (!dir.cd("pics")) {
-        printf("couldn't cd to pics dir\n");
+        printf("!! couldn't cd to pics dir\n");
         return 1;
     }
     dir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
@@ -59,8 +62,7 @@ int main(int argc, char **argv) {
             msg.sprintf("Loaded %s", (char*)file.toAscii().data());
             splash.showMessage(msg, Qt::AlignLeft, Qt::white);
 
-#if MINE
-#else
+#if !MINE
             w->addSlide(pixmap);
 #endif
 
@@ -70,17 +72,23 @@ int main(int argc, char **argv) {
 #if MINE
     albumBrowser->setWindowTitle("PopStation");
     albumBrowser->setCoverSize(QSize(130,175));
+#if TEST
     albumBrowser->resize(QSize(800,400));
-    //    albumBrowser->resize(QSize(320,240));
     albumBrowser->show();
-    //    albumBrowser->showFullScreen();
+#else
+    albumBrowser->resize(QSize(320,240));
+    albumBrowser->showFullScreen();
+#endif
     splash.finish(albumBrowser);
 #else
     w->setWindowTitle("PictureFlow test on Chumby");
     w->setCurrentSlide(w->slideCount()/2);
     w->setSlideSize(QSize(130,175)); // old: 100,135
-    //    w->showFullScreen();
+#if TEST
     w->show();
+#else
+    //    w->showFullScreen();
+#endif
     splash.finish(w);
 #endif
 

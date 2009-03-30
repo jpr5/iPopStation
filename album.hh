@@ -40,16 +40,15 @@ class AlbumBrowser : public AsyncBrowser {
     Q_OBJECT;
 
  private:
-    unsigned foo;
-
     QList<AlbumCover> covers;
 
     // cover
-    uint8_t  c_zoom;
+    uint8_t  c_zoom, c_focus;
     uint16_t c_width, c_height;
 
-    uint16_t c_focus;
-    //    uint32_t slideFrame, step, target, fade;
+    uint8_t f_fade;
+    int8_t f_direction;
+    int32_t f_frame;
 
     PFreal   r_offsetX, r_offsetY;
     QVector<PFreal> rays;
@@ -82,6 +81,7 @@ class AlbumBrowser : public AsyncBrowser {
 
     /* Utility */
     void resizeView(const QSize &);
+    void arrangeCovers(int32_t = 0);
     void prepRender(void);
 
 };
