@@ -12,4 +12,3 @@ INCLUDEPATH += .
 HEADERS += album.hh browser.hh math.hh pictureflow.h
 SOURCES += album.cc browser.cc main.cc pictureflow.cpp
 
-QMAKESPEC = macx-g++
