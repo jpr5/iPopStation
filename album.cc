@@ -19,6 +19,7 @@
 
 const uint16_t tilt_factor    = 80 * IANGLE_MAX / 360;
 const uint16_t spacing_offset = 60;                     // space between each angled cover
+const uint32_t f_max          = 2 * 65536;
 
 /* ---------- */
 
@@ -138,7 +139,7 @@ void AlbumBrowser::arrangeCovers(int32_t factor) {
     for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
         AlbumCover &a = covers[i];
         a.angle = -tilt_factor;
-        a.cx    = r_offsetX + (spacing_offset*(i-c_focus-1)*PFREAL_ONE) + factor;
+        a.cx    = r_offsetX + (spacing_offset*(i-c_focus-1)*PFREAL_ONE) - factor;
         a.cy    = r_offsetY;
 
         printf("cover[%u] = %i, %i, %i\n", i, a.angle, a.cx, a.cy);
@@ -172,8 +173,6 @@ void AlbumBrowser::prepRender(void) {
     f_frame = c_focus << 16;
 
     arrangeCovers();
-
-    noCover = QImage();
 }
 
 void AlbumBrowser::render(void) {
@@ -355,10 +354,9 @@ void AlbumBrowser::animate(void) {
 
     if (c_target < 0 || c_target >= covers.size()) {
         printf("!! animate: asked to go beyond bounds\n");
+        f_direction = 0;
         return;
     }
-
-    const static uint32_t f_max = 2 * 65536;    // TODO: make this a class constant
 
     int32_t f_idx = f_frame - (c_target << 16);
     if (f_idx < 0)
@@ -396,9 +394,9 @@ void AlbumBrowser::animate(void) {
     a->cx    = -f_direction * fmul(r_offsetX, ftick);
     a->cy    = fmul(r_offsetY, ftick);
 
-    // If we have arrived, then just reset everything and display.
-    // NOTE: maybe opportunity to detect this condition earlier and
-    // avoid extra calcs?
+    /*
+     * If we have arrived, then just reset everything and display.
+     */
 
     if (c_idx == c_target) {
 
@@ -427,15 +425,15 @@ void AlbumBrowser::animate(void) {
         arrangeCovers(factor);
 
         if (f_direction > 0) {
-            ftick = (neg * PFREAL_ONE) >> 16;
-            a = &(covers[c_focus+1]);
+            a        = &(covers[c_idx+1]);
             a->angle = -(neg * tilt_factor) >> 16;
+            ftick    = (neg * PFREAL_ONE) >> 16;
             a->cx    = fmul(r_offsetX, ftick);
             a->cy    = fmul(r_offsetY, ftick);
         } else {
-            ftick = (pos * PFREAL_ONE) >> 16;
-            a = &(covers[0]);
+            a        = &(covers[c_idx-1]);
             a->angle = (pos * tilt_factor) >> 16;
+            ftick    = (pos * PFREAL_ONE) >> 16;
             a->cx    = -fmul(r_offsetX, ftick);
             a->cy    = fmul(r_offsetY, ftick);
         }

@@ -12,7 +12,8 @@
 #include <QCache>
 
 /*
- * Possible problems: int16_t might need to be int32_t;
+ * FIXME: some int16_t might need to be int32_t
+ * FIXME: some uint may need to be int
  */
 
 class AlbumCover {
@@ -47,13 +48,20 @@ class AlbumBrowser : public AsyncBrowser {
     uint16_t c_width, c_height;
 
     uint8_t f_fade;
-    int8_t f_direction;
+    int8_t  f_direction;
     int32_t f_frame;
 
-    PFreal   r_offsetX, r_offsetY;
+    PFreal r_offsetX, r_offsetY;
     QVector<PFreal> rays;
 
-    QImage buffer, noCover;
+    QImage buffer;
+
+    /* Utility */
+    void  resizeView(const QSize &);
+
+    void  arrangeCovers(int32_t = 0);
+    void  prepRender(void);
+    QRect renderCover(AlbumCover &, int16_t = -1, int16_t = -1);
 
  protected slots:
 
@@ -70,19 +78,11 @@ class AlbumBrowser : public AsyncBrowser {
     void paintEvent(QPaintEvent *);
     void mousePressEvent(QMouseEvent *);
 
-    void loadCovers(QList<QString>);
-    void resetCovers(void);
-
     bool addCover(const QString &);
     void addCover(const QImage &, const QString & = "");
-    QRect renderCover(AlbumCover &, int16_t = -1, int16_t = -1);
-
+    void loadCovers(QList<QString>);
+    void resetCovers(void);
     void setCoverSize(QSize);
-
-    /* Utility */
-    void resizeView(const QSize &);
-    void arrangeCovers(int32_t = 0);
-    void prepRender(void);
 
 };
 
