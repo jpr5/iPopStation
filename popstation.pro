@@ -9,6 +9,6 @@ DEPENDPATH += .
 INCLUDEPATH += .
 
 # Input
-HEADERS += album.hh browser.hh math.hh pictureflow.h
-SOURCES += album.cc browser.cc main.cc pictureflow.cpp
+HEADERS += album.hh browser.hh math.hh 
+SOURCES += album.cc browser.cc main.cc 
 

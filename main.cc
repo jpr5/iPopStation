@@ -2,7 +2,6 @@
  * $Id$
  */
 
-#define MINE 1
 #define TEST 1
 
 #include <string.h>
@@ -12,11 +11,7 @@
 #include <QFileInfo>
 #include <QSplashScreen>
 
-#if MINE
 #include "album.hh"
-#else
-#include "pictureflow.h"
-#endif
 
 int main(int argc, char **argv) {
 
@@ -35,12 +30,6 @@ int main(int argc, char **argv) {
     splash.show();
     splash.showMessage("Booting...", Qt::AlignLeft, Qt::white);
 
-#if MINE
-    AlbumBrowser *albumBrowser = new AlbumBrowser;
-#else
-    PictureFlow *w = new PictureFlow;
-#endif
-
     QDir dir = QDir::current();
     if (!dir.cd("pics")) {
         printf("!! couldn't cd to pics dir\n");
@@ -49,29 +38,29 @@ int main(int argc, char **argv) {
     dir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
 
     QFileInfoList list = dir.entryInfoList();
-    QFileInfoList::iterator i;
-    for (i = list.begin(); i != list.end(); i++) {
+    if (list.empty()) {
+        printf("!! no pics in dir %s\n", dir.path().toAscii().data());
+        return 1;
+    }
+
+    AlbumBrowser *albumBrowser = new AlbumBrowser;
+
+    for (QFileInfoList::iterator i = list.begin(); i != list.end(); i++) {
+
         QString msg, file = (*i).absoluteFilePath();
 
-#if MINE
         if (albumBrowser->addCover(file)) {
-#else
-        if (pixmap.load(file)) {
-#endif
             printf("Loaded %s\n", (char*)file.toAscii().data());
             msg.sprintf("Loaded %s", (char*)file.toAscii().data());
             splash.showMessage(msg, Qt::AlignLeft, Qt::white);
+        } else
+            printf("!! couldn't load %s\n", (char*)file.toAscii().data());
 
-#if !MINE
-            w->addSlide(pixmap);
-#endif
-
-        }
     }
 
-#if MINE
     albumBrowser->setWindowTitle("PopStation");
     albumBrowser->setCoverSize(QSize(130,175));
+
 #if TEST
     albumBrowser->resize(QSize(800,400));
     albumBrowser->show();
@@ -79,18 +68,8 @@ int main(int argc, char **argv) {
     albumBrowser->resize(QSize(320,240));
     albumBrowser->showFullScreen();
 #endif
+
     splash.finish(albumBrowser);
-#else
-    w->setWindowTitle("PictureFlow test on Chumby");
-    w->setCurrentSlide(w->slideCount()/2);
-    w->setSlideSize(QSize(130,175)); // old: 100,135
-#if TEST
-    w->show();
-#else
-    w->showFullScreen();
-#endif
-    splash.finish(w);
-#endif
 
     printf("running\n");
 
