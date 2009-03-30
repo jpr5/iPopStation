@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
 #if TEST
     w->show();
 #else
-    //    w->showFullScreen();
+    w->showFullScreen();
 #endif
     splash.finish(w);
 #endif
