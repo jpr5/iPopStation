@@ -3,18 +3,28 @@
 
 /*
  * $Id$
+ *
+ * "Fixed-Point Real" numbers, accomplished by taking all the
+ * computations that would normally use real #'s and shift their
+ * precision into the whole-number realm.
+ *
+ * For the ray-tracing code, only sin() and cos() are needed.  For
+ * mul() and div(), the operations are forced to work with 64 bits for
+ * added precision, and the results have the added precision chopped
+ * off and are recast back to FPreal_t's.
  */
 
 #include <stdint.h>
 
-// for fixed-point arithmetic, we need minimum 32-bit long
-// long long (64-bit) might be useful for multiplication and division
 typedef int32_t FPreal_t;
 
 #define IANGLE_MAX    1024
 #define IANGLE_MASK   1023
 
-// warning: regenerate the table if IANGLE_MAX and PFREAL_SHIFT are changed!
+/*
+ * Regen this table if precision is changed (via gentbl.cc).
+ */
+
 static const FPreal_t sinTable[IANGLE_MAX] = {
      3,      9,     15,     21,     28,     34,     40,     47,
     53,     59,     65,     72,     78,     84,     90,     97,
@@ -146,22 +156,11 @@ static const FPreal_t sinTable[IANGLE_MAX] = {
    -48,    -41,    -35,    -29,    -22,    -16,    -10,     -4
 };
 
-/*
- * "Fixed-Point Real" numbers, accomplished by taking all the
- * computations that would normally use real #'s and shift their
- * precision into the whole-number realm.
- *
- * For the ray-tracing code, only sin() and cos() are needed.  For
- * mul() and div(), the operations are forced to work with 64 bits for
- * added precision, and the results have the added precision chopped
- * off and are recast back to FPreal_t's.
- */
+static const FPreal_t FPreal_PRECISION = 10;
+static const FPreal_t FPreal_ONE       = (1 << FPreal_PRECISION);
+static const FPreal_t FPreal_HALF      = (FPreal_ONE >> 1);
 
-static const FPreal_t FPreal_SHIFT = 10;
-static const FPreal_t FPreal_ONE   = (1 << FPreal_SHIFT);
-static const FPreal_t FPreal_HALF  = (FPreal_ONE >> 1);
-
-#define FPreal_CAST(x) ((x) >> FPreal_SHIFT)
+#define FPreal_CAST(x) ((x) >> FPreal_PRECISION)
 
 inline FPreal_t fsin(int iangle) {
     while (iangle < 0)
@@ -169,7 +168,6 @@ inline FPreal_t fsin(int iangle) {
     return sinTable[iangle & IANGLE_MASK];
 }
 
-// quarter phase shift
 inline FPreal_t fcos(int iangle) {
     return fsin(iangle + (IANGLE_MAX >> 2));
 }
@@ -179,12 +177,11 @@ inline FPreal_t fmul(FPreal_t a, FPreal_t b) {
 }
 
 inline FPreal_t fdiv(FPreal_t num, FPreal_t den) {
-    int64_t p = (int64_t)(num) << (FPreal_SHIFT*2);
+    int64_t p = (int64_t)(num) << (FPreal_PRECISION*2);
     int64_t q = p / (int64_t)den;
     int64_t r = FPreal_CAST(q);
 
     return r;
 }
-
 
 #endif

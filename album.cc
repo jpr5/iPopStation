@@ -440,69 +440,8 @@ void AlbumBrowser::animate(void) {
     }
 
     doRender();
+
     return;
-
-#if 0
-    if (step < 0)
-        index++;
-
-    if (centerIndex != index) {
-        centerIndex = index;
-        slideFrame = index << 16;
-        centerSlide.slideIndex = centerIndex;
-        for (int i = 0; i < leftSlides.count(); i++)
-            leftSlides[i].slideIndex = centerIndex-1-i;
-        for (int i = 0; i < rightSlides.count(); i++)
-            rightSlides[i].slideIndex = centerIndex+1+i;
-    }
-
-    centerSlide.angle = (step * tick * itilt) >> 16;
-    centerSlide.cx = -step * fmul(offsetX, ftick);
-    centerSlide.cy = fmul(offsetY, ftick);
-
-    if (centerIndex == target) {
-        resetSlides();
-        animateTimer.stop();
-        step = 0;
-        fade = 256;
-        triggerBrowse();
-        return;
-    }
-
-    for (int i = 0; i < leftSlides.count(); i++) {
-        SlideInfo& si = leftSlides[i];
-        si.angle = itilt;
-        si.cx = -(offsetX + spacing*i*FPreal_ONE + step*spacing*ftick);
-        si.cy = offsetY;
-    }
-
-    for (int i = 0; i < rightSlides.count(); i++) {
-        SlideInfo& si = rightSlides[i];
-        si.angle = -itilt;
-        si.cx = offsetX + spacing*i*FPreal_ONE - step*spacing*ftick;
-        si.cy = offsetY;
-    }
-
-    if (step > 0) {
-        FPreal_t ftick = (neg * FPreal_ONE) >> 16;
-        rightSlides[0].angle = -(neg * itilt) >> 16;
-        rightSlides[0].cx = fmul(offsetX, ftick);
-        rightSlides[0].cy = fmul(offsetY, ftick);
-    } else {
-        FPreal_t ftick = (pos * FPreal_ONE) >> 16;
-        leftSlides[0].angle = (pos * itilt) >> 16;
-        leftSlides[0].cx = -fmul(offsetX, ftick);
-        leftSlides[0].cy = fmul(offsetY, ftick);
-    }
-
-    // must change direction ?
-    if (target < index && step > 0)
-        step = -1;
-    else if (target > index && step < 0)
-        step = 1;
-
-    triggerBrowse();
-#endif
 }
 
 bool AlbumBrowser::addCover(const QString &path_) {
@@ -517,6 +456,10 @@ bool AlbumBrowser::addCover(const QString &path_) {
 
     return true;
 }
+
+/*
+ * Might want to delay "processing" until the image is shown?
+ */
 
 void AlbumBrowser::addCover(const QImage &image_, const QString &path_) {
     AlbumCover a(image_, path_);
