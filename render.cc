@@ -7,12 +7,12 @@
 #include <QWidget>
 #include <QTimer>
 
-#include "browser.hh"
+#include "render.hh"
 
 
 /* ---------- */
 
-AsyncBrowser::AsyncBrowser(QWidget *parent) : QWidget(parent) {
+AsyncRender::AsyncRender(QWidget *parent) : QWidget(parent) {
     _renderTimer.setSingleShot(true);
     _renderTimer.setInterval(0);
     QObject::connect(&_renderTimer, SIGNAL(timeout()), this, SLOT(render()));
@@ -21,12 +21,12 @@ AsyncBrowser::AsyncBrowser(QWidget *parent) : QWidget(parent) {
     QObject::connect(&_animateTimer, SIGNAL(timeout()), this, SLOT(animate()));
 }
 
-AsyncBrowser::~AsyncBrowser(void) {
+AsyncRender::~AsyncRender(void) {
     _renderTimer.stop();
     _animateTimer.stop();
 }
 
-void AsyncBrowser::doAnimate(bool doit) {
+void AsyncRender::doAnimate(bool doit) {
     printf("** doAnimate(%u)\n", (char)doit);
     if (doit)
         _animateTimer.start();
@@ -34,7 +34,7 @@ void AsyncBrowser::doAnimate(bool doit) {
         _animateTimer.stop();
 }
 
-void AsyncBrowser::doRender(void) {
+void AsyncRender::doRender(void) {
     printf("** doRender\n");
    _renderTimer.start();
 }

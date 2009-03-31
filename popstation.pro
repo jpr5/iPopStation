@@ -9,6 +9,6 @@ DEPENDPATH += .
 INCLUDEPATH += .
 
 # Input
-HEADERS += album.hh browser.hh math.hh 
-SOURCES += album.cc browser.cc main.cc 
+HEADERS += album.hh render.hh math.hh 
+SOURCES += album.cc render.cc main.cc 
 

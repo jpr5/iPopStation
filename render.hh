@@ -1,5 +1,5 @@
-#ifndef PF_BROWSER_HH
-#define PF_BROWSER_HH
+#ifndef PF_RENDER_HH
+#define PF_RENDER_HH
 
 /*
  * $Id$
@@ -16,7 +16,7 @@
  * Generic object for asynchronous animation.
  */
 
-class AsyncBrowser : public QWidget {
+class AsyncRender : public QWidget {
     Q_OBJECT;
 
  private:
@@ -34,8 +34,8 @@ class AsyncBrowser : public QWidget {
 
  public:
 
-    AsyncBrowser(QWidget *parent = 0);
-    ~AsyncBrowser(void);
+    AsyncRender(QWidget *parent = 0);
+    ~AsyncRender(void);
 
     void doAnimate(bool = true);
     void doRender(void);

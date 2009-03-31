@@ -106,7 +106,7 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
 /* ------------- */
 /* ------------- */
 
-AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncBrowser(parent) {
+AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncRender(parent) {
     printf("** albumBrowser\n");
     c_zoom   = 100;
     c_width  = 135;

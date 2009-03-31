@@ -5,7 +5,7 @@
  * $Id$
  */
 
-#include "browser.hh"
+#include "render.hh"
 
 #include <QList>
 #include <QVector>
@@ -37,7 +37,7 @@ public:
 
 /* ---------- */
 
-class AlbumBrowser : public AsyncBrowser {
+class AlbumBrowser : public AsyncRender {
     Q_OBJECT;
 
  private:
