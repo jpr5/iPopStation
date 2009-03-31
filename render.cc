@@ -7,6 +7,7 @@
 #include <QWidget>
 #include <QTimer>
 
+#include "logger.hh"
 #include "render.hh"
 
 
@@ -27,7 +28,7 @@ AsyncRender::~AsyncRender(void) {
 }
 
 void AsyncRender::doAnimate(bool doit) {
-    printf("** doAnimate(%u)\n", (char)doit);
+    LOG.puke("doAnimate(%u)", (char)doit);
     if (doit)
         _animateTimer.start();
     else
@@ -35,7 +36,7 @@ void AsyncRender::doAnimate(bool doit) {
 }
 
 void AsyncRender::doRender(void) {
-    printf("** doRender\n");
+    LOG.puke("** doRender");
    _renderTimer.start();
 }
 

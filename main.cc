@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 #endif
 
     LOG.program("ps");
-    LOG.level(LOG_ALL);
+    LOG.level(LOG_DEBUG);
 
     LOG.info("hi mom");
 
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
         QString msg, file = (*i).absoluteFilePath();
 
         if (albumBrowser->addCover(file)) {
-            printf("Loaded %s\n", (char*)file.toAscii().data());
+            LOG.puke("loaded %s", (char*)file.toAscii().data());
             msg.sprintf("Loaded %s", (char*)file.toAscii().data());
             splash.showMessage(msg, Qt::AlignLeft, Qt::white);
         } else
@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 
     splash.finish(albumBrowser);
 
-    printf("running\n");
+    LOG.info("%s running", LOG.program());
 
     return a.exec();
 }

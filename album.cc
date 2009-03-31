@@ -2,6 +2,7 @@
  * $Id$
  */
 
+#include "logger.hh"
 #include "album.hh"
 
 #include <QPainter>
@@ -64,7 +65,7 @@ const AlbumCover &AlbumCover::operator=(const AlbumCover &a) {
  */
 
 void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
-    printf("** process(%u, %u)\n", c_width, c_height);
+    LOG.puke("process(%u, %u)", c_width, c_height);
 
     image = image.scaled(c_width, c_height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).mirrored(true, false);
     uint16_t padding = c_height/3;
@@ -107,7 +108,7 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
 /* ------------- */
 
 AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncRender(parent) {
-    printf("** albumBrowser\n");
+    LOG.puke("albumBrowser\n");
     c_zoom   = 100;
     c_width  = 135;
     c_height = 175;
@@ -133,7 +134,7 @@ void AlbumBrowser::arrangeCovers(int32_t factor) {
         a.cx    = -(r_offsetX + (spacing_offset*(c_focus-1-i)*PFREAL_ONE) + factor);
         a.cy    = r_offsetY;
 
-        printf("cover[%u] = %i, %i, %i\n", i, a.angle, a.cx, a.cy);
+        LOG.puke("cover[%u] = %i, %i, %i", i, a.angle, a.cx, a.cy);
     }
 
     for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
@@ -142,13 +143,13 @@ void AlbumBrowser::arrangeCovers(int32_t factor) {
         a.cx    = r_offsetX + (spacing_offset*(i-c_focus-1)*PFREAL_ONE) - factor;
         a.cy    = r_offsetY;
 
-        printf("cover[%u] = %i, %i, %i\n", i, a.angle, a.cx, a.cy);
+        LOG.puke("cover[%u] = %i, %i, %i", i, a.angle, a.cx, a.cy);
     }
 }
 
 
 void AlbumBrowser::prepRender(void) {
-    printf("** prepRender()\n");
+    LOG.puke("prepRender()");
 
     uint16_t width  = (buffer.size().width()  + 1) / 2;
     uint16_t height = (buffer.size().height() + 1) / 2;
@@ -176,7 +177,7 @@ void AlbumBrowser::prepRender(void) {
 }
 
 void AlbumBrowser::render(void) {
-    printf("** render\n");
+    LOG.puke("render");
 
     /*
      * Clean out the off-screen buffer and start with the in-focus
@@ -185,20 +186,20 @@ void AlbumBrowser::render(void) {
 
     buffer.fill(Qt::black);
 
-    printf("** c_focus = %u (of %u)\n", c_focus, covers.size());
+    LOG.debug("c_focus = %u (of %u)", c_focus, covers.size());
 
     uint16_t x_bound;
     QRect r, rs;
 
     r = renderCover(covers[c_focus]);
-    printf("** initial bound: [%u, %u]\n", r.left(), r.right());
+    LOG.puke("initial bound: [%u, %u]", r.left(), r.right());
 
     x_bound = r.left();
     for (int16_t i = c_focus - 1; i != -1; i--) {
-        printf("-> cover %i\n", i);
+        LOG.debug("rendering cover %i", i);
         rs = renderCover(covers[i], 0, x_bound-1);
         if (rs.isEmpty()) {
-            printf("** didn't render cover %u, stopping\n", i);
+            LOG.debug("didn't render cover %u, stopping", i);
             break;
         }
 
@@ -207,10 +208,10 @@ void AlbumBrowser::render(void) {
 
     x_bound = r.right();
     for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
-        printf("-> cover %i\n", i);
+        LOG.debug("rendering cover %i", i);
         rs = renderCover(covers[i], x_bound+1, buffer.width());
         if (rs.isEmpty()) {
-            printf("** didn't render cover %u, stopping\n", i);
+            LOG.debug("didn't render cover %u, stopping", i);
             break;
         }
 
@@ -221,7 +222,7 @@ void AlbumBrowser::render(void) {
 }
 
 QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
-    printf("** renderCover(%i, %i)\n", lb, rb);
+    LOG.puke("renderCover(%i, %i)", lb, rb);
 
     QRect rect(0, 0, 0, 0);
     QImage &src = a.image;
@@ -240,7 +241,7 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
     rb = qMin((int)rb, w-1);
 
     if (lb - rb == 0) {
-        printf("!! not rendering invisible slide\n");
+        LOG.notice("not rendering invisible slide");
         return rect;
     }
 
@@ -256,7 +257,7 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
     if (xi >= w)
         return rect;
 
-    printf("lb = %i, rb = %i, ( xi ) = %i\n", lb, rb, xi);
+    LOG.puke("[ %i ]   %i   [ %i ]", lb, xi, rb);
 
     bool flag = false;
     rect.setLeft(xi);
@@ -342,10 +343,10 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
 }
 
 void AlbumBrowser::animate(void) {
-    printf("** animate\n");
+    LOG.puke("animate");
 
     if (f_direction == 0) {
-        printf("!! animate: no directional change\n");
+        LOG.warn("no directional change, bailing");
         doAnimate(false);
         return;
     }
@@ -353,7 +354,7 @@ void AlbumBrowser::animate(void) {
     int16_t c_target = c_focus + f_direction;
 
     if (c_target < 0 || c_target >= covers.size()) {
-        printf("!! animate: asked to go beyond bounds\n");
+        LOG.warn("asked to go beyond bounds");
         f_direction = 0;
         return;
     }
@@ -370,8 +371,7 @@ void AlbumBrowser::animate(void) {
 
     f_frame += speed * f_direction;
 
-    printf("** animate: angle = %i, speed = %u, f_frame = %i (dir = %i)\n",
-           angle, speed, f_frame, f_direction);
+    LOG.puke("angle = %i, speed = %u, f_frame = %i (dir = %i)", angle, speed, f_frame, f_direction);
 
     int32_t c_idx = f_frame >> 16;
     int32_t pos   = f_frame & 0xffff;
@@ -379,7 +379,7 @@ void AlbumBrowser::animate(void) {
     int tick      = (f_direction < 0) ? neg : pos;
     PFreal ftick  = (tick * PFREAL_ONE) >> 16;
 
-    printf("__ c_idx = %i, pos = %i, neg = %i, tick = %i, ftick = %i\n", c_idx, pos, neg, tick, ftick);
+    LOG.puke("c_idx = %i, pos = %i, neg = %i, tick = %i, ftick = %i", c_idx, pos, neg, tick, ftick);
 
     // track left- and right-most alpha fade
     f_fade = pos / 256;
@@ -387,7 +387,7 @@ void AlbumBrowser::animate(void) {
     if (f_direction < 0)
         c_idx++;
 
-    printf("__ c_focus = %i (%i) [%i], c_target = %i\n", c_focus, c_idx, f_direction, c_target);
+    LOG.puke("c_focus = %i (%i) [%i], c_target = %i", c_focus, c_idx, f_direction, c_target);
 
     AlbumCover *a = &(covers[c_idx]);
     a->angle = (f_direction * tick * tilt_factor) >> 16;
@@ -420,7 +420,7 @@ void AlbumBrowser::animate(void) {
 
         int32_t factor = f_direction * spacing_offset * ftick;
 
-        printf("** animating (factor = %i)\n", factor);
+        LOG.debug("animating (factor = %i)", factor);
 
         arrangeCovers(factor);
 
@@ -509,7 +509,7 @@ bool AlbumBrowser::addCover(const QString &path_) {
     QImage image_;
 
     if (!image_.load(path_)) {
-        printf("!! unable to load %s", (char*)path_.toAscii().data());
+        LOG.error("unable to load %s", (char*)path_.toAscii().data());
         return false;
     }
 
@@ -534,7 +534,7 @@ void AlbumBrowser::loadCovers(QList<QString> covers) {
         QString &filename = (*i);
 
         if (image.load(filename)) {
-            printf("** Loaded %s", filename.toAscii().data());
+            LOG.debug("loaded cover %s", filename.toAscii().data());
             addCover(image, filename);
         }
     }
@@ -545,7 +545,7 @@ void AlbumBrowser::resetCovers(void) {
 }
 
 void AlbumBrowser::setCoverSize(QSize s) {
-    printf("** setCoverSize(%u, %u)\n", s.width(), s.height());
+    LOG.puke("setCoverSize(%u, %u)", s.width(), s.height());
 
     if (s.width() == c_width && s.height() == c_height)
         return;
@@ -559,7 +559,7 @@ void AlbumBrowser::setCoverSize(QSize s) {
  */
 
 void AlbumBrowser::resizeView(const QSize &s) {
-    printf("** resizeView(%u, %u)\n", s.width(), s.height());
+    LOG.puke("resizeView(%u, %u)", s.width(), s.height());
 
     /*
      * No point in recalculating anything if the size isn't changing.
@@ -583,7 +583,7 @@ void AlbumBrowser::resizeView(const QSize &s) {
 
 
 void AlbumBrowser::resizeEvent(QResizeEvent *e) {
-    printf("** resizeEvent: (%i:%i) -> (%i:%i)\n",
+    LOG.puke("resizeEvent: (%i:%i) -> (%i:%i)",
            e->oldSize().width(), e->oldSize().height(),
            e->size().width(),    e->size().height());
 
@@ -593,7 +593,7 @@ void AlbumBrowser::resizeEvent(QResizeEvent *e) {
 }
 
 void AlbumBrowser::paintEvent(QPaintEvent *e) {
-    printf("** paintEvent\n");
+    LOG.puke("paintEvent");
     Q_UNUSED(e);
 
     QPainter p(this);
@@ -602,7 +602,7 @@ void AlbumBrowser::paintEvent(QPaintEvent *e) {
 }
 
 void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
-    printf("** mousePressEvent\n");
+    LOG.puke("mousePressEvent");
 
     uint16_t third = size().width() / 3;
 

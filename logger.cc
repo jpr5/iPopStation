@@ -110,6 +110,13 @@ void CLogger::info(const char *format, ...) {
     va_end(args);
 }
 
+void CLogger::notice(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vlog(LOG_NOTICE, format, args);
+    va_end(args);
+}
+
 void CLogger::warn(const char *format, ...) {
     va_list args;
     va_start(args, format);

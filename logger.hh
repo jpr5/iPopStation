@@ -54,6 +54,7 @@ class CLogger {
     void puke(const char *, ...);
     void debug(const char *, ...);
     void info(const char *, ...);
+    void notice(const char *, ...);
     void warn(const char *, ...);
     void error(const char *, ...);
 };
