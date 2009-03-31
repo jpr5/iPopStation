@@ -11,7 +11,9 @@
 #include <QFileInfo>
 #include <QSplashScreen>
 
+#include "logger.hh"
 #include "album.hh"
+
 
 int main(int argc, char **argv) {
 
@@ -23,6 +25,11 @@ int main(int argc, char **argv) {
     QApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
 #endif
 
+    LOG.program("ps");
+    LOG.level(LOG_ALL);
+
+    LOG.info("hi mom");
+
     QPixmap pixmap(QSize(320, 240));
     pixmap.fill(Qt::black);
 
@@ -31,15 +38,14 @@ int main(int argc, char **argv) {
     splash.showMessage("Booting...", Qt::AlignLeft, Qt::white);
 
     QDir dir = QDir::current();
-    if (!dir.cd("pics")) {
-        printf("!! couldn't cd to pics dir\n");
-        return 1;
-    }
+    if (!dir.cd("pics"))
+        LOG.warn("unable to cd to pics dir, using current");
+
     dir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
 
     QFileInfoList list = dir.entryInfoList();
     if (list.empty()) {
-        printf("!! no pics in dir %s\n", dir.path().toAscii().data());
+        LOG.error("no pics in dir %s", dir.path().toAscii().data());
         return 1;
     }
 
@@ -54,7 +60,7 @@ int main(int argc, char **argv) {
             msg.sprintf("Loaded %s", (char*)file.toAscii().data());
             splash.showMessage(msg, Qt::AlignLeft, Qt::white);
         } else
-            printf("!! couldn't load %s\n", (char*)file.toAscii().data());
+            LOG.warn("couldn't load %s", (char*)file.toAscii().data());
 
     }
 
