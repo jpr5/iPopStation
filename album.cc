@@ -114,7 +114,6 @@ AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncRender(parent) {
     c_width  = 135;
     c_height = 175;
 
-    f_fade = 255;
     f_frame = 0;
     f_direction = 0;
 }
@@ -385,9 +384,6 @@ void AlbumBrowser::animate(void) {
 
     LOG.puke("c_idx = %i, pos = %i, neg = %i, tick = %i, ftick = %i", c_idx, pos, neg, tick, ftick);
 
-    // track left- and right-most alpha fade
-    f_fade = pos / 256;
-
     if (f_direction < 0)
         c_idx++;
 
@@ -406,7 +402,6 @@ void AlbumBrowser::animate(void) {
 
         c_focus     = c_idx;
         f_frame     = c_idx << 16;
-        f_fade      = 255;
         f_direction = 0;
 
         arrangeCovers();
@@ -416,10 +411,7 @@ void AlbumBrowser::animate(void) {
     } else {
 
         /*
-         * Otherwise, we're still transitioning.  Update cover angles and
-         * fade the end-most slides.
-         *
-         * TODO: do we need to fade those end slides?
+         * Otherwise, we're still transitioning.  Update cover angles.
          */
 
         int32_t factor = f_direction * spacing_offset * ftick;

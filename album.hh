@@ -20,10 +20,11 @@
 class AlbumCover {
 
 public:
-    int16_t angle;
-    FPreal_t cx, cy;
     QImage image;
     QString path;
+
+    int16_t angle;
+    FPreal_t cx, cy;
 
     AlbumCover(void);
     AlbumCover(const QImage &, const QString & = "");
@@ -48,7 +49,6 @@ class AlbumBrowser : public AsyncRender {
     uint8_t  c_zoom, c_focus;
     uint16_t c_width, c_height;
 
-    uint8_t f_fade;
     int8_t  f_direction;
     int32_t f_frame;
 
