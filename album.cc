@@ -131,7 +131,7 @@ void AlbumBrowser::arrangeCovers(int32_t factor) {
     for (int16_t i = c_focus - 1; i != -1; i--) {
         AlbumCover &a = covers[i];
         a.angle = tilt_factor;
-        a.cx    = -(r_offsetX + (spacing_offset*(c_focus-1-i)*PFREAL_ONE) + factor);
+        a.cx    = -(r_offsetX + (spacing_offset*(c_focus-1-i)*FPreal_ONE) + factor);
         a.cy    = r_offsetY;
 
         LOG.puke("cover[%u] = %i, %i, %i", i, a.angle, a.cx, a.cy);
@@ -140,7 +140,7 @@ void AlbumBrowser::arrangeCovers(int32_t factor) {
     for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
         AlbumCover &a = covers[i];
         a.angle = -tilt_factor;
-        a.cx    = r_offsetX + (spacing_offset*(i-c_focus-1)*PFREAL_ONE) - factor;
+        a.cx    = r_offsetX + (spacing_offset*(i-c_focus-1)*FPreal_ONE) - factor;
         a.cy    = r_offsetY;
 
         LOG.puke("cover[%u] = %i, %i, %i", i, a.angle, a.cx, a.cy);
@@ -157,18 +157,18 @@ void AlbumBrowser::prepRender(void) {
     rays.resize(width * 2);
     uint16_t i;
     for (i = 0; i < width; i++) {
-        PFreal gg = (PFREAL_HALF + i * PFREAL_ONE) / (2 * height);
+        FPreal_t gg = (FPreal_HALF + i * FPreal_ONE) / (2 * height);
         rays[width-i-1] = -gg;
         rays[width+i]   =  gg;
     }
 
     r_offsetX =
-        ((c_width / 2) * (PFREAL_ONE - fcos(tilt_factor))) +
-        (c_width * PFREAL_ONE);
+        ((c_width / 2) * (FPreal_ONE - fcos(tilt_factor))) +
+        (c_width * FPreal_ONE);
 
     r_offsetY =
         ((c_width / 2) * fsin(tilt_factor)) +
-        (c_width * PFREAL_ONE / 4);
+        (c_width * FPreal_ONE / 4);
 
     c_focus = covers.size()/2;
     f_frame = c_focus << 16;
@@ -246,14 +246,14 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
     }
 
     int distance = h * 100 / c_zoom;
-    PFreal sdx = fcos(a.angle);
-    PFreal sdy = fsin(a.angle);
-    PFreal xs = a.cx - c_width * sdx/2;
-    PFreal ys = a.cy - c_width * sdy/2;
-    PFreal dist = distance * PFREAL_ONE;
+    FPreal_t sdx = fcos(a.angle);
+    FPreal_t sdy = fsin(a.angle);
+    FPreal_t xs = a.cx - c_width * sdx/2;
+    FPreal_t ys = a.cy - c_width * sdy/2;
+    FPreal_t dist = distance * FPreal_ONE;
 
     //                      start from middle  +/- distance
-    int xi = qMax((PFreal)0, (w*PFREAL_ONE/2) + fdiv(xs*h, dist+ys) >> PFREAL_SHIFT);
+    int xi = qMax((FPreal_t)0, FPreal_CAST((w*FPreal_ONE/2) + fdiv(xs*h, dist+ys)));
     if (xi >= w)
         return rect;
 
@@ -263,21 +263,21 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
     rect.setLeft(xi);
 
     for (int x = qMax(xi, (int)lb); x <= rb; x++) {
-        PFreal hity = 0;
-        PFreal fk = rays[x];
+        FPreal_t hity = 0;
+        FPreal_t fk = rays[x];
         if (sdy) {
             fk = fk - fdiv(sdx,sdy);
             hity = -fdiv((rays[x]*distance - a.cx + a.cy*sdx/sdy), fk);
         }
 
-        dist = distance*PFREAL_ONE + hity;
+        dist = distance*FPreal_ONE + hity;
         if (dist < 0)
             continue;
 
-        PFreal hitx = fmul(dist, rays[x]);
-        PFreal hitdist = fdiv(hitx - a.cx, sdx);
+        FPreal_t hitx = fmul(dist, rays[x]);
+        FPreal_t hitdist = fdiv(hitx - a.cx, sdx);
 
-        int column = sw/2 + (hitdist >> PFREAL_SHIFT);
+        int column = sw/2 + FPreal_CAST(hitdist);
         if (column >= sw)
             break;
         if (column < 0)
@@ -296,14 +296,14 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
 
         int center = (sh/2);
         int dy = dist / h;
-        int p1 = center*PFREAL_ONE - dy/2;
-        int p2 = center*PFREAL_ONE + dy/2;
+        int p1 = center*FPreal_ONE - dy/2;
+        int p2 = center*FPreal_ONE + dy/2;
 
         const QRgb *ptr = (const QRgb*)(src.scanLine(column));
         //        if (alpha == 256)
             while((y1 >= 0) && (y2 < h) && (p1 >= 0)) {
-                *pixel1 = ptr[p1 >> PFREAL_SHIFT];
-                *pixel2 = ptr[p2 >> PFREAL_SHIFT];
+                *pixel1 = ptr[FPreal_CAST(p1)];
+                *pixel2 = ptr[FPreal_CAST(p2)];
                 p1 -= dy;
                 p2 += dy;
                 y1--;
@@ -314,8 +314,8 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
 #if 0
        else
             while((y1 >= 0) && (y2 < h) && (p1 >= 0)) {
-                QRgb c1 = ptr[p1 >> PFREAL_SHIFT];
-                QRgb c2 = ptr[p2 >> PFREAL_SHIFT];
+                QRgb c1 = ptr[FPreal_CAST(p1)];
+                QRgb c2 = ptr[FPreal_CAST(p2)];
 
                 int r1 = qRed(c1) * alpha/256;
                 int g1 = qGreen(c1) * alpha/256;
@@ -367,7 +367,7 @@ void AlbumBrowser::animate(void) {
     // with f_idx bounded by f_max)
     // IANGLE_MAX * (f_idx - half of max) / (twice the max)
     int32_t angle  = IANGLE_MAX * (f_idx-f_max/2) / (f_max*2);
-    uint32_t speed = 512 + (16384 * (PFREAL_ONE+fsin(angle))/PFREAL_ONE);
+    uint32_t speed = 512 + (16384 * (FPreal_ONE+fsin(angle))/FPreal_ONE);
 
     f_frame += speed * f_direction;
 
@@ -377,7 +377,7 @@ void AlbumBrowser::animate(void) {
     int32_t pos   = f_frame & 0xffff;
     int32_t neg   = 65536 - pos;
     int tick      = (f_direction < 0) ? neg : pos;
-    PFreal ftick  = (tick * PFREAL_ONE) >> 16;
+    FPreal_t ftick  = (tick * FPreal_ONE) >> 16;
 
     LOG.puke("c_idx = %i, pos = %i, neg = %i, tick = %i, ftick = %i", c_idx, pos, neg, tick, ftick);
 
@@ -427,13 +427,13 @@ void AlbumBrowser::animate(void) {
         if (f_direction > 0) {
             a        = &(covers[c_idx+1]);
             a->angle = -(neg * tilt_factor) >> 16;
-            ftick    = (neg * PFREAL_ONE) >> 16;
+            ftick    = (neg * FPreal_ONE) >> 16;
             a->cx    = fmul(r_offsetX, ftick);
             a->cy    = fmul(r_offsetY, ftick);
         } else {
             a        = &(covers[c_idx-1]);
             a->angle = (pos * tilt_factor) >> 16;
-            ftick    = (pos * PFREAL_ONE) >> 16;
+            ftick    = (pos * FPreal_ONE) >> 16;
             a->cx    = -fmul(r_offsetX, ftick);
             a->cy    = fmul(r_offsetY, ftick);
         }
@@ -472,24 +472,24 @@ void AlbumBrowser::animate(void) {
     for (int i = 0; i < leftSlides.count(); i++) {
         SlideInfo& si = leftSlides[i];
         si.angle = itilt;
-        si.cx = -(offsetX + spacing*i*PFREAL_ONE + step*spacing*ftick);
+        si.cx = -(offsetX + spacing*i*FPreal_ONE + step*spacing*ftick);
         si.cy = offsetY;
     }
 
     for (int i = 0; i < rightSlides.count(); i++) {
         SlideInfo& si = rightSlides[i];
         si.angle = -itilt;
-        si.cx = offsetX + spacing*i*PFREAL_ONE - step*spacing*ftick;
+        si.cx = offsetX + spacing*i*FPreal_ONE - step*spacing*ftick;
         si.cy = offsetY;
     }
 
     if (step > 0) {
-        PFreal ftick = (neg * PFREAL_ONE) >> 16;
+        FPreal_t ftick = (neg * FPreal_ONE) >> 16;
         rightSlides[0].angle = -(neg * itilt) >> 16;
         rightSlides[0].cx = fmul(offsetX, ftick);
         rightSlides[0].cy = fmul(offsetY, ftick);
     } else {
-        PFreal ftick = (pos * PFREAL_ONE) >> 16;
+        FPreal_t ftick = (pos * FPreal_ONE) >> 16;
         leftSlides[0].angle = (pos * itilt) >> 16;
         leftSlides[0].cx = -fmul(offsetX, ftick);
         leftSlides[0].cy = fmul(offsetY, ftick);

@@ -9,17 +9,13 @@
 
 // for fixed-point arithmetic, we need minimum 32-bit long
 // long long (64-bit) might be useful for multiplication and division
-typedef int32_t PFreal;
-
-#define PFREAL_SHIFT  10
-#define PFREAL_ONE    (1 << PFREAL_SHIFT)
-#define PFREAL_HALF   (PFREAL_ONE >> 1)
+typedef int32_t FPreal_t;
 
 #define IANGLE_MAX    1024
 #define IANGLE_MASK   1023
 
 // warning: regenerate the table if IANGLE_MAX and PFREAL_SHIFT are changed!
-static const PFreal sinTable[IANGLE_MAX] = {
+static const FPreal_t sinTable[IANGLE_MAX] = {
      3,      9,     15,     21,     28,     34,     40,     47,
     53,     59,     65,     72,     78,     84,     90,     97,
    103,    109,    115,    122,    128,    134,    140,    147,
@@ -150,27 +146,45 @@ static const PFreal sinTable[IANGLE_MAX] = {
    -48,    -41,    -35,    -29,    -22,    -16,    -10,     -4
 };
 
-inline PFreal fsin(int iangle) {
+/*
+ * "Fixed-Point Real" numbers, accomplished by taking all the
+ * computations that would normally use real #'s and shift their
+ * precision into the whole-number realm.
+ *
+ * For the ray-tracing code, only sin() and cos() are needed.  For
+ * mul() and div(), the operations are forced to work with 64 bits for
+ * added precision, and the results have the added precision chopped
+ * off and are recast back to FPreal_t's.
+ */
+
+static const FPreal_t FPreal_SHIFT = 10;
+static const FPreal_t FPreal_ONE   = (1 << FPreal_SHIFT);
+static const FPreal_t FPreal_HALF  = (FPreal_ONE >> 1);
+
+#define FPreal_CAST(x) ((x) >> FPreal_SHIFT)
+
+inline FPreal_t fsin(int iangle) {
     while (iangle < 0)
         iangle += IANGLE_MAX;
     return sinTable[iangle & IANGLE_MASK];
 }
 
 // quarter phase shift
-inline PFreal fcos(int iangle) {
+inline FPreal_t fcos(int iangle) {
     return fsin(iangle + (IANGLE_MAX >> 2));
 }
 
-inline PFreal fmul(PFreal a, PFreal b) {
-    return ((int64_t)(a))*((int64_t)(b)) >> PFREAL_SHIFT;
+inline FPreal_t fmul(FPreal_t a, FPreal_t b) {
+    return FPreal_CAST(((int64_t)(a))*((int64_t)(b)));
 }
 
-inline PFreal fdiv(PFreal num, PFreal den) {
-    int64_t p = (int64_t)(num) << (PFREAL_SHIFT*2);
+inline FPreal_t fdiv(FPreal_t num, FPreal_t den) {
+    int64_t p = (int64_t)(num) << (FPreal_SHIFT*2);
     int64_t q = p / (int64_t)den;
-    int64_t r = q >> PFREAL_SHIFT;
+    int64_t r = FPreal_CAST(q);
 
     return r;
 }
+
 
 #endif

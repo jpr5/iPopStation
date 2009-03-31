@@ -5,11 +5,12 @@
  * $Id$
  */
 
-#include "render.hh"
-
 #include <QList>
 #include <QVector>
 #include <QCache>
+
+#include "render.hh"
+
 
 /*
  * FIXME: some int16_t might need to be int32_t
@@ -20,7 +21,7 @@ class AlbumCover {
 
 public:
     int16_t angle;
-    PFreal cx, cy;
+    FPreal_t cx, cy;
     QImage image;
     QString path;
 
@@ -51,8 +52,8 @@ class AlbumBrowser : public AsyncRender {
     int8_t  f_direction;
     int32_t f_frame;
 
-    PFreal r_offsetX, r_offsetY;
-    QVector<PFreal> rays;
+    FPreal_t r_offsetX, r_offsetY;
+    QVector<FPreal_t> rays;
 
     QImage buffer;
 
@@ -93,8 +94,6 @@ class AlbumBrowser : public AsyncRender {
  *
  *   State = Blown (UP, DOWN)
  *
- * KEY: we only trigger animate()s; render is triggered as a result.
- * UNLESS: we just want to repaint.
 
  Click
  showAlbum -> trigger animate (repeated, 30ms)
