@@ -61,7 +61,8 @@ const AlbumCover &AlbumCover::operator=(const AlbumCover &a) {
  * TODO: figure a better way to always maximize the album view-size;
  *       eliminate top-padding hack
  * TODO: (in collection) redraw entire group every time an album is
- *       processed
+ *       processed/added? (assumes delayed processing, which is not
+ *       the case right now)
  */
 
 void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
@@ -123,9 +124,11 @@ AlbumBrowser::~AlbumBrowser(void) {
 
 
 void AlbumBrowser::arrangeCovers(int32_t factor) {
+
     /*
-     * NOTE: may be able to do these calculations once and just assign
-     * the negatives of the left to the right.  [ middle+1 = -(middle-1) ]
+     * TODO: Optimize by calculating these values once and assigning
+     * +/- value outward from center (c_focus).  Not a big win on
+     * large displays + large lists.
      */
 
     for (int16_t i = c_focus - 1; i != -1; i--) {
@@ -148,15 +151,14 @@ void AlbumBrowser::arrangeCovers(int32_t factor) {
 }
 
 
-void AlbumBrowser::prepRender(void) {
-    LOG.puke("prepRender()");
+void AlbumBrowser::prepRender(bool reset) {
+    LOG.puke("prepRender(%u)", reset);
 
     uint16_t width  = (buffer.size().width()  + 1) / 2;
     uint16_t height = (buffer.size().height() + 1) / 2;
 
     rays.resize(width * 2);
-    uint16_t i;
-    for (i = 0; i < width; i++) {
+    for (uint16_t i = 0; i < width; i++) {
         FPreal_t gg = (FPreal_HALF + i * FPreal_ONE) / (2 * height);
         rays[width-i-1] = -gg;
         rays[width+i]   =  gg;
@@ -170,8 +172,10 @@ void AlbumBrowser::prepRender(void) {
         ((c_width / 2) * fsin(tilt_factor)) +
         (c_width * FPreal_ONE / 4);
 
-    c_focus = covers.size()/2;
-    f_frame = c_focus << 16;
+    if (reset) {
+        c_focus = covers.size()/2;
+        f_frame = c_focus << 16;
+    }
 
     arrangeCovers();
 }
@@ -196,7 +200,7 @@ void AlbumBrowser::render(void) {
 
     x_bound = r.left();
     for (int16_t i = c_focus - 1; i != -1; i--) {
-        LOG.debug("rendering cover %i", i);
+        LOG.puke("rendering cover %i", i);
         rs = renderCover(covers[i], 0, x_bound-1);
         if (rs.isEmpty()) {
             LOG.debug("didn't render cover %u, stopping", i);
@@ -208,7 +212,7 @@ void AlbumBrowser::render(void) {
 
     x_bound = r.right();
     for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
-        LOG.debug("rendering cover %i", i);
+        LOG.puke("rendering cover %i", i);
         rs = renderCover(covers[i], x_bound+1, buffer.width());
         if (rs.isEmpty()) {
             LOG.debug("didn't render cover %u, stopping", i);
@@ -241,7 +245,7 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
     rb = qMin((int)rb, w-1);
 
     if (lb - rb == 0) {
-        LOG.notice("not rendering invisible slide");
+        LOG.puke("not rendering invisible slide");
         return rect;
     }
 
@@ -501,7 +505,7 @@ void AlbumBrowser::setCoverSize(QSize s) {
  * (Re)size.  Guaranteed one of these on startup.
  */
 
-void AlbumBrowser::resizeView(const QSize &s) {
+void AlbumBrowser::resizeView(const QSize &s, bool reset) {
     LOG.puke("resizeView(%u, %u)", s.width(), s.height());
 
     /*
@@ -520,7 +524,8 @@ void AlbumBrowser::resizeView(const QSize &s) {
      * paint will just show the empty buffer.
      */
 
-    prepRender();
+    prepRender(reset);
+
     render();
 }
 
@@ -530,7 +535,9 @@ void AlbumBrowser::resizeEvent(QResizeEvent *e) {
            e->oldSize().width(), e->oldSize().height(),
            e->size().width(),    e->size().height());
 
-    this->resizeView(e->size());
+    bool reset = (e->oldSize().width() == -1 && e->oldSize().height() == -1);
+
+    this->resizeView(e->size(), reset);
 
     QWidget::resizeEvent(e);
 }

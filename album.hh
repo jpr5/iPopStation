@@ -58,10 +58,10 @@ class AlbumBrowser : public AsyncRender {
     QImage buffer;
 
     /* Utility */
-    void  resizeView(const QSize &);
+    void  resizeView(const QSize &, bool reset);
 
     void  arrangeCovers(int32_t = 0);
-    void  prepRender(void);
+    void  prepRender(bool reset);
     QRect renderCover(AlbumCover &, int16_t = -1, int16_t = -1);
 
  protected slots:
