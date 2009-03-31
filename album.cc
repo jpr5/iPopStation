@@ -293,8 +293,8 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
 
         int y1 = h/2;
         int y2 = y1+ 1;
-        QRgb* pixel1 = (QRgb*)(buffer.scanLine(y1)) + x;
-        QRgb* pixel2 = (QRgb*)(buffer.scanLine(y2)) + x;
+        QRgb *pixel1 = (QRgb*)(buffer.scanLine(y1)) + x;
+        QRgb *pixel2 = (QRgb*)(buffer.scanLine(y2)) + x;
         QRgb pixelstep = pixel2 - pixel1;
 
         int center = (sh/2);
@@ -303,40 +303,16 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
         int p2 = center*FPreal_ONE + dy/2;
 
         const QRgb *ptr = (const QRgb*)(src.scanLine(column));
-        //        if (alpha == 256)
-            while((y1 >= 0) && (y2 < h) && (p1 >= 0)) {
-                *pixel1 = ptr[FPreal_CAST(p1)];
-                *pixel2 = ptr[FPreal_CAST(p2)];
-                p1 -= dy;
-                p2 += dy;
-                y1--;
-                y2++;
-                pixel1 -= pixelstep;
-                pixel2 += pixelstep;
-            }
-#if 0
-       else
-            while((y1 >= 0) && (y2 < h) && (p1 >= 0)) {
-                QRgb c1 = ptr[FPreal_CAST(p1)];
-                QRgb c2 = ptr[FPreal_CAST(p2)];
-
-                int r1 = qRed(c1) * alpha/256;
-                int g1 = qGreen(c1) * alpha/256;
-                int b1 = qBlue(c1) * alpha/256;
-                int r2 = qRed(c2) * alpha/256;
-                int g2 = qGreen(c2) * alpha/256;
-                int b2 = qBlue(c2) * alpha/256;
-
-                *pixel1 = qRgb(r1, g1, b1);
-                *pixel2 = qRgb(r2, g2, b2);
-                p1 -= dy;
-                p2 += dy;
-                y1--;
-                y2++;
-                pixel1 -= pixelstep;
-                pixel2 += pixelstep;
-            }
-#endif
+        while((y1 >= 0) && (y2 < h) && (p1 >= 0)) {
+            *pixel1 = ptr[FPreal_CAST(p1)];
+            *pixel2 = ptr[FPreal_CAST(p2)];
+            p1 -= dy;
+            p2 += dy;
+            y1--;
+            y2++;
+            pixel1 -= pixelstep;
+            pixel2 += pixelstep;
+        }
     }
 
     rect.setTop(0);
@@ -367,7 +343,7 @@ void AlbumBrowser::animate(void) {
         f_idx = -f_idx;
     f_idx = qMin((int)f_idx, (int)f_max);
 
-    // with f_idx bounded by f_max)
+    // with f_idx bounded by f_max
     // IANGLE_MAX * (f_idx - half of max) / (twice the max)
     int32_t angle  = IANGLE_MAX * (f_idx-f_max/2) / (f_max*2);
     uint32_t speed = 512 + (16384 * (FPreal_ONE+fsin(angle))/FPreal_ONE);
@@ -544,16 +520,27 @@ void AlbumBrowser::paintEvent(QPaintEvent *e) {
 }
 
 void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
-    LOG.puke("mousePressEvent");
+    LOG.debug("mousePressEvent[%u:%u]", e->x(), e->y());
 
     uint16_t third = size().width() / 3;
 
-    if (e->x() <= third)
-        f_direction = -1;
-    else if (e->x() >= third * 2)
-        f_direction = 1;
-    else
+    if (e->x() <= third) {
+
+        if (f_direction == -1 && animating())
+            c_focus--;
+        else
+            f_direction = -1;
+
+    } else if (e->x() >= third * 2) {
+
+        if (f_direction == 1 && animating())
+            c_focus++;
+        else
+            f_direction = 1;
+
+    } else
         ;
 
-    doAnimate();
+    if (f_direction)
+        doAnimate();
 }

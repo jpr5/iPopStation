@@ -40,5 +40,10 @@ void AsyncRender::doRender(void) {
    _renderTimer.start();
 }
 
+bool AsyncRender::animating(void) const {
+    bool b = _animateTimer.isActive();
+    LOG.puke("** animating: %u", b);
+    return b;
+}
 
 

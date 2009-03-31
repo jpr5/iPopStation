@@ -39,6 +39,8 @@ class AsyncRender : public QWidget {
 
     void doAnimate(bool = true);
     void doRender(void);
+
+    bool animating(void) const;
 };
 
 /* --------- */
