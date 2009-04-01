@@ -186,7 +186,7 @@ void AlbumBrowser::render(void) {
 
     buffer.fill(Qt::black);
 
-    LOG.debug("c_focus = %u (of %u)", c_focus, covers.size());
+    LOG.debug("c_focus = %u (of %u) [%i]", c_focus, covers.size(), f_frame);
 
     uint16_t x_bound;
     QRect r, rs;
@@ -199,7 +199,7 @@ void AlbumBrowser::render(void) {
         LOG.puke("rendering cover %i", i);
         rs = renderCover(covers[i], 0, x_bound-1);
         if (rs.isEmpty()) {
-            LOG.debug("didn't render cover %u, stopping", i);
+            LOG.puke("didn't render cover %u, stopping", i);
             break;
         }
 
@@ -211,7 +211,7 @@ void AlbumBrowser::render(void) {
         LOG.puke("rendering cover %i", i);
         rs = renderCover(covers[i], x_bound+1, buffer.width());
         if (rs.isEmpty()) {
-            LOG.debug("didn't render cover %u, stopping", i);
+            LOG.puke("didn't render cover %u, stopping", i);
             break;
         }
 
@@ -329,10 +329,16 @@ void AlbumBrowser::animate(void) {
 
     int16_t c_target = c_focus + f_direction;
 
+    /*
+     * If target is beyond bounds (e.g. kept clicking left), then let
+     * the animation finish by setting the target cover to whichever
+     * is the current focus, and set the current frame to it
+     * (effectively a non-animated render of c_focus).
+     */
+
     if (c_target < 0 || c_target >= covers.size()) {
-        LOG.warn("asked to go beyond bounds");
-        f_direction = 0;
-        return;
+        c_target = c_focus;
+        f_frame  = c_target << 16;
     }
 
     int32_t f_idx = f_frame - (c_target << 16);
@@ -523,17 +529,20 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
 
     if (e->x() <= third) {
 
-        if (f_direction == -1 && animating())
-            c_focus--;
-        else
-            f_direction = -1;
+        if (c_focus > 0)
+            if (f_direction < 0 && animating())
+                c_focus--;
+            else
+                f_direction = -1;
 
     } else if (e->x() >= third * 2) {
 
-        if (f_direction == 1 && animating())
-            c_focus++;
-        else
-            f_direction = 1;
+        if (c_focus < covers.size()-1)
+
+            if (f_direction > 0 && animating())
+                c_focus++;
+            else
+                f_direction = 1;
 
     } else
         ;
