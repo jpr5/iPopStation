@@ -11,7 +11,6 @@
 
 #include "render.hh"
 
-
 /*
  * FIXME: some int16_t might need to be int32_t
  * FIXME: some uint may need to be int
@@ -36,7 +35,6 @@ public:
 
 };
 
-
 /* ---------- */
 
 class AlbumBrowser : public AsyncRender {
@@ -58,11 +56,10 @@ class AlbumBrowser : public AsyncRender {
     QImage buffer;
 
     /* Utility */
-    void  resizeView(const QSize &, bool reset);
-
-    void  arrangeCovers(int32_t = 0);
     void  prepRender(bool reset);
+    void  arrangeCovers(int32_t = 0);
     QRect renderCover(AlbumCover &, int16_t = -1, int16_t = -1);
+    void  resizeView(const QSize &, bool reset);
 
  protected slots:
 

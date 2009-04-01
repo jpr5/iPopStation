@@ -9,6 +9,9 @@
 #include <string.h>
 #include <unistd.h>
 
+//#include <QEvent>
+#include <QKeyEvent>
+
 #include "logger.hh"
 
 
@@ -27,7 +30,7 @@ char const *const levels[LOG_ALL] = {
 CLogger LOG;
 
 
-CLogger::CLogger(void) {
+CLogger::CLogger(void) : QObject() {
     memset(buf, 0, sizeof(buf));
     progName = NULL;
     logLevel = LOG_ALL;
@@ -78,6 +81,14 @@ char const *const CLogger::ts(void) {
     strftime(timestamp, sizeof(timestamp)-1, "%b %d %H:%M:%S ", tv);
 
     return timestamp;
+}
+
+void CLogger::log(uint8_t level, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buf, sizeof(buf)-1, format, args);
+    writeLog(level, buf);
+    va_end(args);
 }
 
 void CLogger::vlog(uint8_t level, const char *format, va_list args) {
@@ -138,4 +149,26 @@ void CLogger::error(const char *format, ...) {
 void CLogger::writeLog(uint8_t level, const char *str) {
     fprintf(stdout, "%s%s[%i] %s: %s\n",
             ts(), progName, progPID, levels[level], str);
+}
+
+
+bool CLogger::eventFilter(QObject *obj, QEvent *e) {
+    Q_UNUSED(obj);
+
+    if (e->type() == QEvent::KeyPress) {
+        QKeyEvent *ke = static_cast<QKeyEvent *>(e);
+        switch (ke->key()) {
+            case Qt::Key_Plus: if (logLevel < LOG_ALL) {
+                logLevel++;
+                log(LOG_DEBUG, "log level changed: %u", logLevel);
+            } break;
+
+            case Qt::Key_Minus: if (logLevel > 0) {
+                logLevel--;
+                log(LOG_DEBUG, "log level changed: %u", logLevel);
+            } break;
+        }
+    }
+
+    return false;
 }

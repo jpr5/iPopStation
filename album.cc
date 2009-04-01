@@ -2,12 +2,11 @@
  * $Id$
  */
 
-#include "logger.hh"
-#include "album.hh"
-
 #include <QPainter>
 #include <QResizeEvent>
 
+#include "logger.hh"
+#include "album.hh"
 
 /*
  * Angle of non-focused covers.
@@ -121,7 +120,6 @@ AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncRender(parent) {
 AlbumBrowser::~AlbumBrowser(void) {
 }
 
-
 void AlbumBrowser::arrangeCovers(int32_t factor) {
 
     /*
@@ -148,7 +146,6 @@ void AlbumBrowser::arrangeCovers(int32_t factor) {
         LOG.puke("cover[%u] = %i, %i, %i", i, a.angle, a.cx, a.cy);
     }
 }
-
 
 void AlbumBrowser::prepRender(bool reset) {
     LOG.puke("prepRender(%u)", reset);
@@ -424,6 +421,7 @@ bool AlbumBrowser::addCover(const QString &path_) {
         return false;
     }
 
+    LOG.puke("loaded cover %s", (char*)path_.toAscii().data());
     addCover(image_, path_);
 
     return true;
@@ -496,7 +494,6 @@ void AlbumBrowser::resizeView(const QSize &s, bool reset) {
 
     render();
 }
-
 
 void AlbumBrowser::resizeEvent(QResizeEvent *e) {
     LOG.puke("resizeEvent: (%i:%i) -> (%i:%i)",

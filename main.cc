@@ -25,12 +25,25 @@ int main(int argc, char **argv) {
     QApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
 #endif
 
+    /*
+     * Initialize logger and grab keys, etc.
+     */
+
     LOG.program("ps");
     LOG.level(LOG_DEBUG);
+    a.installEventFilter(&LOG);
 
-    LOG.info("hi mom");
+    /*
+     * Get the splash screen going.
+     */
 
-    QPixmap pixmap(QSize(320, 240));
+#if TEST
+    QSize screenSize(800, 400);
+#else
+    QSize screenSize(320, 240);
+#endif
+
+    QPixmap pixmap(screenSize);
     pixmap.fill(Qt::black);
 
     QSplashScreen splash(pixmap);
@@ -52,26 +65,21 @@ int main(int argc, char **argv) {
     AlbumBrowser *albumBrowser = new AlbumBrowser;
 
     for (QFileInfoList::iterator i = list.begin(); i != list.end(); i++) {
-
-        QString msg, file = (*i).absoluteFilePath();
+        QString msg = "Loaded %s", file = (*i).absoluteFilePath();
 
         if (albumBrowser->addCover(file)) {
             LOG.puke("loaded %s", (char*)file.toAscii().data());
-            msg.sprintf("Loaded %s", (char*)file.toAscii().data());
-            splash.showMessage(msg, Qt::AlignLeft, Qt::white);
-        } else
-            LOG.warn("couldn't load %s", (char*)file.toAscii().data());
-
+            splash.showMessage(msg.arg(file), Qt::AlignLeft, Qt::white);
+        }
     }
 
     albumBrowser->setWindowTitle("PopStation");
     albumBrowser->setCoverSize(QSize(130,175));
+    albumBrowser->resize(screenSize);
 
 #if TEST
-    albumBrowser->resize(QSize(800,400));
     albumBrowser->show();
 #else
-    albumBrowser->resize(QSize(320,240));
     albumBrowser->showFullScreen();
 #endif
 

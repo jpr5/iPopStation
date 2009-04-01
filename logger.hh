@@ -8,6 +8,10 @@
 #include <stdint.h>
 #include <stdarg.h>
 
+#include <QObject>
+#include <QKeyEvent>
+
+
 #define LOG_ALL       9
 #define LOG_PUKE      8
 #define LOG_DEBUG     7
@@ -20,7 +24,8 @@
 #define LOG_EMERG     0
 
 
-class CLogger {
+class CLogger : public QObject {
+    Q_OBJECT;
 
  private:
     static const uint8_t  MAXDATELEN = 20;
@@ -37,8 +42,13 @@ class CLogger {
 
     char const *const ts(void);
 
+    void log(uint8_t, const char *, ...);
     void vlog(uint8_t, const char *, va_list);
     void writeLog(uint8_t, const char *);
+
+ protected:
+
+    bool eventFilter(QObject *, QEvent *);
 
  public:
 
