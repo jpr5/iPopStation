@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     AlbumBrowser *albumBrowser = new AlbumBrowser;
 
     for (QFileInfoList::iterator i = list.begin(); i != list.end(); i++) {
-        QString msg = "Loaded %s", file = (*i).absoluteFilePath();
+        QString msg = "Loaded %1", file = (*i).absoluteFilePath();
 
         if (albumBrowser->addCover(file)) {
             LOG.puke("loaded %s", (char*)file.toAscii().data());
