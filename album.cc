@@ -502,9 +502,14 @@ void AlbumBrowser::resizeView(const QSize &s, bool reset) {
 }
 
 void AlbumBrowser::resizeEvent(QResizeEvent *e) {
-    LOG.puke("resizeEvent: (%i:%i) -> (%i:%i)",
+    LOG.puke("@@ resizeEvent: [%i:%i] -> [%i:%i]",
            e->oldSize().width(), e->oldSize().height(),
            e->size().width(),    e->size().height());
+
+    /*
+     * If we're being resized for the first time, then "reset" c_focus
+     * and f_frame (happens in prepRender()).
+     */
 
     bool reset = (e->oldSize().width() == -1 && e->oldSize().height() == -1);
 
@@ -514,7 +519,7 @@ void AlbumBrowser::resizeEvent(QResizeEvent *e) {
 }
 
 void AlbumBrowser::paintEvent(QPaintEvent *e) {
-    LOG.puke("paintEvent");
+    LOG.puke("@@ paintEvent");
     Q_UNUSED(e);
 
     QPainter p(this);
@@ -523,7 +528,7 @@ void AlbumBrowser::paintEvent(QPaintEvent *e) {
 }
 
 void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
-    LOG.debug("mousePressEvent[%u:%u]", e->x(), e->y());
+    LOG.debug("@@ mousePressEvent[%u:%u]", e->x(), e->y());
 
     uint16_t third = size().width() / 3;
 
