@@ -1,5 +1,5 @@
-#ifndef PS_MATH_HH
-#define PS_MATH_HH
+#ifndef PS_FPMATH_HH
+#define PS_FPMATH_HH
 
 /*
  * $Id$

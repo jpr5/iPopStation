@@ -10,8 +10,6 @@
 #include <QWidget>
 #include <QTimer>
 
-#include "math.hh"
-
 /*
  * Generic object for asynchronous animation.
  */

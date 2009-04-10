@@ -10,6 +10,7 @@
 #include <QCache>
 
 #include "render.hh"
+#include "fpmath.hh"
 
 /*
  * FIXME: some int16_t might need to be int32_t
@@ -81,7 +82,6 @@ class AlbumBrowser : public AsyncRender {
     void loadCovers(QList<QString>);
     void resetCovers(void);
     void setCoverSize(QSize);
-
 };
 
 

@@ -22,6 +22,7 @@ int main(int argc, char **argv) {
 
     QApplication a(argc, argv);
 #if !TEST
+    QApplication::changeOverrideCursor(QCursor(Qt::BlankCursor));
     QApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
 #endif
 
@@ -68,7 +69,7 @@ int main(int argc, char **argv) {
         QString msg = "Loaded %1", file = (*i).absoluteFilePath();
 
         if (albumBrowser->addCover(file)) {
-            LOG.puke("loaded %s", (char*)file.toAscii().data());
+            LOG.puke("loaded %s", (const char *)file.toAscii());
             splash.showMessage(msg.arg(file), Qt::AlignLeft, Qt::white);
         }
     }
