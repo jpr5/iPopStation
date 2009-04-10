@@ -72,19 +72,58 @@ class AlbumBrowser : public AsyncRender {
     AlbumBrowser(QWidget * = 0);
     ~AlbumBrowser(void);
 
+    bool addCover(const QString &);
+    void addCover(const QImage &, const QString & = "");
+    void loadCovers(QList<QString> &);
+    void resetCovers(void);
+    void setCoverSize(QSize);
+    const AlbumCover &currentCover(void);
+
+    void displayAlbum(void);
+
     /* Methods to respond to as a QWidget */
     void resizeEvent(QResizeEvent *);
     void paintEvent(QPaintEvent *);
     void mousePressEvent(QMouseEvent *);
 
-    bool addCover(const QString &);
-    void addCover(const QImage &, const QString & = "");
-    void loadCovers(QList<QString>);
-    void resetCovers(void);
-    void setCoverSize(QSize);
+    const QImage &displayBuffer(void);
 };
 
+/* ---------- */
 
+class AlbumDisplay : public AsyncRender {
+    Q_OBJECT;
+
+ private:
+    AlbumBrowser *browser;
+
+    AlbumCover album;
+    QImage cover;
+
+    QImage buffer, bg;
+
+    uint32_t orig_x, orig_y;
+    uint32_t album_x, album_y;
+
+    //    QList<QString> songs; // FIXME: temp song list
+
+
+ protected slots:
+
+    virtual void animate(void);
+    virtual void render(void);
+
+ public:
+
+    AlbumDisplay(AlbumBrowser *);
+    ~AlbumDisplay(void);
+
+    /* Methods to respond to as a QWidget */
+    void resizeEvent(QResizeEvent *);
+    void paintEvent(QPaintEvent *);
+    void mousePressEvent(QMouseEvent *);
+    void closeEvent(QCloseEvent *);
+};
 
 /*
  * Things we need:
