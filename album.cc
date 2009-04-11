@@ -672,8 +672,8 @@ void AlbumDisplay::animate(void) {
 
     LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_y);
 
-    album_x        -= qMin(album_x, incr_x);
-    album_y        -= qMin(album_y, incr_y);
+    album_x -= qMin(album_x, incr_x);
+    album_y -= qMin(album_y, incr_y);
 
     if (album_x == 0 || album_y == 0)
         doAnimate(0);
