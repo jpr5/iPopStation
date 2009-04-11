@@ -6,6 +6,7 @@
 
 #include <QWidget>
 #include <QTimer>
+#include <QPainter>
 
 #include "logger.hh"
 #include "render.hh"
@@ -44,6 +45,15 @@ bool AsyncRender::animating(void) const {
     bool b = _animateTimer.isActive();
     LOG.puke("** animating: %u", b);
     return b;
+}
+
+void AsyncRender::paintEvent(QPaintEvent *e) {
+    LOG.puke("** paintEvent");
+    Q_UNUSED(e);
+
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing, false);
+    p.drawImage(QPoint(0, 0), this->buffer);
 }
 
 

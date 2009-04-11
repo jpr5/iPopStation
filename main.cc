@@ -75,8 +75,8 @@ int main(int argc, char **argv) {
     }
 
     albumBrowser->setWindowTitle("PopStation");
-    albumBrowser->setCoverSize(QSize(130,175));
     albumBrowser->resize(screenSize);
+    albumBrowser->setCoverSize(QSize(130,175));
 
 #if TEST
     albumBrowser->show();

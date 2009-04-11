@@ -21,6 +21,20 @@ class AsyncRender : public QWidget {
 
     QTimer _animateTimer, _renderTimer;
 
+ protected:
+
+    /*
+     * Video drawing double-buffer.
+     */
+
+    QImage buffer;
+
+    /*
+     * QWidget events hooks.
+     */
+
+    virtual void paintEvent(QPaintEvent *);
+
  protected slots:
 
     /*

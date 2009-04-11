@@ -42,24 +42,44 @@ class AlbumBrowser : public AsyncRender {
     Q_OBJECT;
 
  private:
-    QList<AlbumCover> covers;
+    /*
+     * Display mode: (l,r)b == (left,right)-bound, for detecting album
+     * vs. navigation clicks.
+     */
 
-    // cover
+    typedef enum {
+        M_BROWSE = 0, M_DISPLAY
+    } mode_t;
+
+    mode_t d_mode;
+    uint16_t d_lb, d_rb;
+
+    /* covers */
+    QList<AlbumCover> covers;
     uint8_t  c_zoom, c_focus;
     uint16_t c_width, c_height;
 
+    /* cover display */
+    QImage cover, bg;
+    uint32_t orig_x, orig_y;
+    uint32_t album_x, album_y;
+
+    /* raytracing */
     int8_t  f_direction;
     int32_t f_frame;
-
     FPreal_t r_offsetX, r_offsetY;
     QVector<FPreal_t> rays;
 
-    QImage buffer;
-
     /* Utility */
+    void renderDisplay(void);
+    void renderBrowse(void);
+    void animateDisplay(void);
+    void animateBrowse(void);
+
     void  prepRender(bool reset);
-    void  arrangeCovers(int32_t = 0);
     QRect renderCover(AlbumCover &, int16_t = -1, int16_t = -1);
+    void  arrangeCovers(int32_t = 0);
+
     void  resizeView(const QSize &, bool reset);
 
  protected slots:
@@ -75,7 +95,6 @@ class AlbumBrowser : public AsyncRender {
     bool addCover(const QString &);
     void addCover(const QImage &, const QString & = "");
     void loadCovers(QList<QString> &);
-    void resetCovers(void);
     void setCoverSize(QSize);
     QSize coverSize(void);
     const AlbumCover &currentCover(void);
@@ -84,58 +103,8 @@ class AlbumBrowser : public AsyncRender {
 
     /* Methods to respond to as a QWidget */
     void resizeEvent(QResizeEvent *);
-    void paintEvent(QPaintEvent *);
     void mousePressEvent(QMouseEvent *);
 
-    const QImage &displayBuffer(void);
 };
-
-/* ---------- */
-
-class AlbumDisplay : public AsyncRender {
-    Q_OBJECT;
-
- private:
-    AlbumBrowser *browser;
-
-    AlbumCover album;
-    QImage cover;
-
-    QImage buffer, bg;
-
-    uint32_t orig_x, orig_y;
-    uint32_t album_x, album_y;
-
-    //    QList<QString> songs; // FIXME: temp song list
-
-
- protected slots:
-
-    virtual void animate(void);
-    virtual void render(void);
-
- public:
-
-    AlbumDisplay(AlbumBrowser *);
-    ~AlbumDisplay(void);
-
-    /* Methods to respond to as a QWidget */
-    void resizeEvent(QResizeEvent *);
-    void paintEvent(QPaintEvent *);
-    void mousePressEvent(QMouseEvent *);
-    void closeEvent(QCloseEvent *);
-};
-
-/*
- * Things we need:
- *
- *   State = Blown (UP, DOWN)
- *
-
- Click
- showAlbum -> trigger animate (repeated, 30ms)
- animate Blowup or Blowdown -> trigger render (singleshot, immediate)
-
-*/
 
 #endif

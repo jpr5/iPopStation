@@ -118,12 +118,33 @@ AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncRender(parent) {
     c_width  = 135;
     c_height = 175;
 
-    f_frame = 0;
+    f_frame     = 0;
     f_direction = 0;
+
+    d_mode = M_BROWSE;
 }
 
 AlbumBrowser::~AlbumBrowser(void) {
 }
+
+void AlbumBrowser::displayAlbum(void) {
+    bg    = buffer.copy();
+    cover = currentCover().image.transformed(QMatrix().rotate(-90)).mirrored(false, true);
+
+    /*
+     * Calculate initial position on-screen, which we'll eventually
+     * relocate to upper-left offset.
+     */
+
+    QSize cs = coverSize();
+
+    album_x = orig_x = (buffer.size().width() - cs.width()) / 2;
+    album_y = orig_y = (buffer.size().height() - cs.height()) / 2;
+
+    LOG.debug("album_x = %u, album_y = %u, [%u, %u]",
+              album_x, album_y, buffer.size().width(), buffer.size().height());
+}
+
 
 void AlbumBrowser::arrangeCovers(int32_t factor) {
 
@@ -184,6 +205,61 @@ void AlbumBrowser::prepRender(bool reset) {
 void AlbumBrowser::render(void) {
     LOG.puke("render");
 
+    switch (d_mode) {
+        case M_BROWSE: {
+            renderBrowse();
+        } break;
+        case M_DISPLAY: {
+            renderDisplay();
+        } break;
+    };
+
+    /*
+     * Then tell the Widget to update itself at next opportunity.
+     */
+
+    QWidget::update();
+}
+
+void AlbumBrowser::renderDisplay(void) {
+    LOG.puke("** renderDisplay");
+
+    /*
+     * Calculate % fade as % distance covered by album to final point:
+     *     (orig_x - album_x) / album_x
+     *
+     * Faux-fade bg
+     * copy bg onto buffer
+     * start moving the album
+     *
+     * TODO: we may need to scale the image down on smaller interfaces
+     * to leave room for other stuff.
+     */
+
+    uint32_t *px_in, *px_out;
+    uint8_t r, g, b;
+
+    for (uint16_t y = 0; y < bg.size().height(); y++) {
+        px_in  = (uint32_t*)bg.scanLine(y);
+        px_out = (uint32_t*)buffer.scanLine(y);
+
+        for (uint16_t x = 0; x < bg.size().width(); x++) {
+            r = qRed(px_in[x])   * album_x / orig_x;
+            g = qGreen(px_in[x]) * album_x / orig_x;
+            b = qBlue(px_in[x])  * album_x / orig_x;
+            px_out[x] = qRgb(r,g,b);
+        }
+    }
+
+    QPainter p(&buffer);
+    QRect rect(QPoint(0, cover.size().height()/2/3), cover.size());
+
+    p.drawImage(QPoint(album_x, album_y), cover, rect);
+}
+
+void AlbumBrowser::renderBrowse(void) {
+    LOG.puke("** renderBrowse");
+
     /*
      * Clean out the off-screen buffer and start with the in-focus
      * cover.
@@ -191,13 +267,11 @@ void AlbumBrowser::render(void) {
 
     buffer.fill(Qt::black);
 
-    LOG.debug("c_focus = %u (of %u) [%i]", c_focus, covers.size(), f_frame);
-
     uint16_t x_bound;
-    QRect r, rs;
+    QRect r, rc;
 
     r = renderCover(covers[c_focus]);
-    LOG.puke("initial bound: [%u, %u]", r.left(), r.right());
+    LOG.debug("initial bound: [%u, %u]", r.left(), r.right());
 
     /*
      * Then render all remaining covers, left-side right-to-left, and
@@ -207,32 +281,26 @@ void AlbumBrowser::render(void) {
     x_bound = r.left();
     for (int16_t i = c_focus - 1; i != -1; i--) {
         LOG.puke("rendering cover %i", i);
-        rs = renderCover(covers[i], 0, x_bound-1);
-        if (rs.isEmpty()) {
+        rc = renderCover(covers[i], 0, x_bound-1);
+        if (rc.isEmpty()) {
             LOG.puke("didn't render cover %u, stopping", i);
             break;
         }
 
-        x_bound = rs.left();
+        x_bound = rc.left();
     }
 
     x_bound = r.right();
     for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
         LOG.puke("rendering cover %i", i);
-        rs = renderCover(covers[i], x_bound+1, buffer.width());
-        if (rs.isEmpty()) {
+        rc = renderCover(covers[i], x_bound+1, buffer.width());
+        if (rc.isEmpty()) {
             LOG.puke("didn't render cover %u, stopping", i);
             break;
         }
 
-        x_bound = rs.right();
+        x_bound = rc.right();
     }
-
-    /*
-     * Then tell the Widget to update itself at next opportunity.
-     */
-
-    QWidget::update();
 }
 
 QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
@@ -333,7 +401,37 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
 }
 
 void AlbumBrowser::animate(void) {
-    LOG.puke("animate");
+    LOG.puke("** animate");
+
+    switch (d_mode) {
+        case M_BROWSE: {
+            animateBrowse();
+        } break;
+        case M_DISPLAY: {
+            animateDisplay();
+        } break;
+    };
+}
+
+void AlbumBrowser::animateDisplay(void) {
+    LOG.puke("** animateDisplay");
+
+    uint32_t incr_x = qMax(album_x / 10, (uint32_t)1);
+    uint32_t incr_y = qMax(album_y / 10, (uint32_t)1);
+
+    LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_y);
+
+    album_x -= qMin(album_x, incr_x);
+    album_y -= qMin(album_y, incr_y);
+
+    if (album_x == 0 || album_y == 0)
+        doAnimate(0);
+
+    doRender();
+}
+
+void AlbumBrowser::animateBrowse(void) {
+    LOG.puke("** animateBrowse");
 
     if (f_direction == 0) {
         LOG.warn("no directional change, bailing");
@@ -429,8 +527,6 @@ void AlbumBrowser::animate(void) {
     }
 
     doRender();
-
-    return;
 }
 
 bool AlbumBrowser::addCover(const QString &path_) {
@@ -458,7 +554,7 @@ void AlbumBrowser::addCover(const QImage &image_, const QString &path_) {
 }
 
 void AlbumBrowser::loadCovers(QList<QString> &covers) {
-    resetCovers();
+    covers.clear();
 
     QImage image;
     foreach (QString filename, covers) {
@@ -469,10 +565,6 @@ void AlbumBrowser::loadCovers(QList<QString> &covers) {
     }
 }
 
-void AlbumBrowser::resetCovers(void) {
-    covers.clear();
-}
-
 void AlbumBrowser::setCoverSize(QSize s) {
     LOG.puke("setCoverSize(%u, %u)", s.width(), s.height());
 
@@ -481,6 +573,11 @@ void AlbumBrowser::setCoverSize(QSize s) {
 
     c_width  = s.width();
     c_height = s.height();
+
+    d_lb = (size().width() / 2) - (c_width / 2);
+    d_rb = d_lb + c_width;
+
+    LOG.debug("d_lb = %u, d_rb = %u", d_lb, d_rb);
 }
 
 QSize AlbumBrowser::coverSize(void) {
@@ -488,25 +585,9 @@ QSize AlbumBrowser::coverSize(void) {
 }
 
 const AlbumCover &AlbumBrowser::currentCover(void) {
-    LOG.puke("currentCover\n");
+    LOG.puke("currentCover");
 
     return covers[c_focus];
-}
-
-void AlbumBrowser::displayAlbum(void) {
-
-    AlbumDisplay *ad = new AlbumDisplay(this);
-
-    ad->setWindowTitle("Album Display");
-    ad->resize(size());
-
-    hide();
-
-#if TEST
-    ad->show();
-#else
-    ad->showFullScreen();
-#endif
 }
 
 /*
@@ -526,15 +607,17 @@ void AlbumBrowser::resizeView(const QSize &s, bool reset) {
     buffer = QImage(s, QImage::Format_RGB32);
     buffer.fill(Qt::black);
 
-    /*
-     * We'll get a paint event after this; we need to trigger our
-     * double-buffered render before it comes, otherwise the first
-     * paint will just show the empty buffer.
-     */
+    switch (d_mode) {
+        case M_DISPLAY: {
+            doAnimate();
+        } break;
 
-    prepRender(reset);
-
-    render();
+        default:
+        case M_BROWSE: {
+            prepRender(reset);
+            render();
+        } break;
+    };
 }
 
 void AlbumBrowser::resizeEvent(QResizeEvent *e) {
@@ -554,227 +637,71 @@ void AlbumBrowser::resizeEvent(QResizeEvent *e) {
     QWidget::resizeEvent(e);
 }
 
-void AlbumBrowser::paintEvent(QPaintEvent *e) {
-    LOG.puke("@@ paintEvent");
-    Q_UNUSED(e);
-
-    QPainter p(this);
-    p.setRenderHint(QPainter::Antialiasing, false);
-    p.drawImage(QPoint(0, 0), this->buffer);
-}
-
 void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
     LOG.debug("@@ mousePressEvent[%u:%u]", e->x(), e->y());
 
-    /*
-     * TODO: These values should be pre-calc'd.
-     */
+    switch (d_mode) {
 
-    uint16_t center_lb = (size().width() / 2) - (c_width / 2);
-    uint16_t center_rb = center_lb + c_width;
+        case M_BROWSE: {
+            if (e->x() <= d_lb) {
 
-    if (e->x() <= center_lb) {
+                if (c_focus > 0)
+                    if (f_direction < 0 && animating())
+                        c_focus--;
+                    else
+                        f_direction = -1;
 
-        if (c_focus > 0)
-            if (f_direction < 0 && animating())
-                c_focus--;
-            else
-                f_direction = -1;
+            } else if (e->x() >= d_rb) {
 
-    } else if (e->x() >= center_rb) {
+                if (c_focus < covers.size()-1)
+                    if (f_direction > 0 && animating())
+                        c_focus++;
+                    else
+                        f_direction = 1;
 
-        if (c_focus < covers.size()-1)
+            } else {
 
-            if (f_direction > 0 && animating())
-                c_focus++;
-            else
-                f_direction = 1;
+                /*
+                 * Album was clicked.
+                 *
+                 * FIXME: is all this necessary?  Still leaves
+                 * browser's mid-render display when browser is
+                 * re-show()'d.
+                 */
 
-    } else {
+                if (animating()) {
+                    LOG.debug("changing mode mid-animation");
 
-        /*
-         * FIXME: is all this necessary?  Still leaves browser's
-         * mid-render display when browser is re-show()'d.
-         */
+                    doAnimate(0);
+                    c_focus += f_direction;
+                    f_frame = c_focus << 16;
+                    f_direction = 0;
 
-        if (animating()) {
-            doAnimate(0);
-            c_focus += f_direction;
-            f_frame = c_focus << 16;
+                    render();
+                }
+
+                d_mode = M_DISPLAY;
+                displayAlbum();
+            }
+
+            doAnimate();
+
+        } break;
+
+        case M_DISPLAY: {
+
+            d_mode      = M_BROWSE;
             f_direction = 0;
-            render();
-        }
 
-        displayAlbum();
+            bg = cover = QImage();
 
-    }
+            doRender();
 
-    if (f_direction)
-        doAnimate();
-}
+        } break;
+    };
 
-const QImage &AlbumBrowser::displayBuffer(void) {
-    return buffer;
 }
 
 /* -------------------------- */
 /* -------------------------- */
-
-
-AlbumDisplay::AlbumDisplay(AlbumBrowser *browser_) : AsyncRender(NULL) {
-    LOG.debug("albumDisplay");
-
-    QWidget::setAttribute(Qt::WA_DeleteOnClose);
-
-    browser = browser_;
-    bg      = browser->displayBuffer();
-    cover   = browser->currentCover().image.transformed(QMatrix().rotate(-90)).mirrored(false, true);
-    buffer  = bg.copy();
-
-    /*
-     * Calculate initial position on-screen, which we'll eventually
-     * relocate to upper-left offset.
-     */
-
-    QSize cs = browser->coverSize();
-
-    album_x = orig_x = (buffer.size().width() - cs.width()) / 2;
-    album_y = orig_y = (buffer.size().height() - cs.height()) / 2;
-
-    LOG.info("album_y = %u, A = %u, B = %u", album_x, buffer.size().height(), cover.size().height());
-}
-
-AlbumDisplay::~AlbumDisplay(void) {
-    LOG.debug("~albumDisplay");
-}
-
-/*
- * Main animation here is to take the original background buffer (with
- * the albums) and psuedo-alpha-fade them out, while moving the
- * primary album into focus.
- */
-
-void AlbumDisplay::animate(void) {
-    //    LOG.debug("+ animate");
-
-    /*
-     * Calculate the incremental movements, which right now takes off
-     * 10% of distance to destination each time through.
-     */
-
-    /*
-    uint32_t incr_x = qMax(album_x / 10, orig_x / 100);
-    uint32_t incr_y = qMax(album_y / 10, orig_y / 100);
-    */
-
-    uint32_t incr_x = qMax(album_x / 10, (uint32_t)1);
-    uint32_t incr_y = qMax(album_y / 10, (uint32_t)1);
-
-    LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_y);
-
-    album_x -= qMin(album_x, incr_x);
-    album_y -= qMin(album_y, incr_y);
-
-    if (album_x == 0 || album_y == 0)
-        doAnimate(0);
-
-    doRender();
-}
-
-void AlbumDisplay::render(void) {
-    /*
-     * Calculate % fade as % distance covered by album to final point:
-     *     (orig_x - album_x) / album_x
-     *
-     * Faux-fade bg
-     * copy bg onto buffer
-     * start moving the album
-     *
-     * TODO: we may need to scale the image down on smaller interfaces
-     * to leave room for other stuff.
-     */
-
-    uint32_t *px;
-    uint8_t r, g, b;
-
-    for (uint16_t y = 0; y < bg.size().height(); y++) {
-        px = (uint32_t*)bg.scanLine(y);
-        for (uint16_t x = 0; x < bg.size().width(); x++) {
-            r = qRed(px[x])   * album_x / orig_x;
-            g = qGreen(px[x]) * album_x / orig_x;
-            b = qBlue(px[x])  * album_x / orig_x;
-            px[x] = qRgb(r,g,b);
-        }
-    }
-
-    QPainter p(&buffer);
-    p.drawImage(0, 0, bg);
-
-    QRect rect(QPoint(0, cover.size().height()/2/3),
-            cover.size());
-
-    p.drawImage(QPoint(album_x, album_y), cover, rect);
-
-    //    LOG.debug("drawing cover @ %u:%u [%u:%u:%u:%u]", album_x, album_y, r.left(), r.top(), r.right(), r.bottom());
-
-    QWidget::update();
-}
-
-
-
-void AlbumDisplay::resizeEvent(QResizeEvent *e) {
-    LOG.debug("-@ resizeEvent: [%i:%i] -> [%i:%i]",
-           e->oldSize().width(), e->oldSize().height(),
-           e->size().width(),    e->size().height());
-
-    /*
-    bool firstTime = (e->oldSize().width() == -1 && e->oldSize().height() == -1);
-    if (firstTime) {
-        buffer = QImage(e->size(), QImage::Format_RGB32);
-        buffer.fill(Qt::black);
-    }
-    */
-
-    doAnimate();
-
-    QWidget::resizeEvent(e);
-}
-
-void AlbumDisplay::paintEvent(QPaintEvent *e) {
-    LOG.debug("-@ paintEvent");
-    Q_UNUSED(e);
-
-    QPainter p(this);
-    p.setRenderHint(QPainter::Antialiasing, false);
-    p.drawImage(QPoint(0, 0), this->buffer);
-}
-
-void AlbumDisplay::mousePressEvent(QMouseEvent *e) {
-    LOG.debug("-@ mousePressEvent");
-    Q_UNUSED(e);
-
-    /*
-     * Capture the "click on X" here and call this->close().
-     */
-
-    // FIXME: temporary hack until real close graphics added
-    if (!animating())
-        QWidget::close();
-}
-
-void AlbumDisplay::closeEvent(QCloseEvent *e) {
-
-    /*
-     * Stop any animation maybe going on and transfer control back to browser.
-     */
-
-    doAnimate(0);
-    browser->show();
-
-    /*
-     * We set QA_DeleteOnClose so Qt will delete us after this.
-     */
-
-    e->accept();
-}
 
