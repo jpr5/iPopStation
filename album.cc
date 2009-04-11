@@ -707,7 +707,6 @@ void AlbumDisplay::render(void) {
         }
     }
 
-
     QPainter p(&buffer);
     p.drawImage(0, 0, bg);
 
@@ -717,7 +716,6 @@ void AlbumDisplay::render(void) {
     p.drawImage(QPoint(album_x, album_y), cover, rect);
 
     //    LOG.debug("drawing cover @ %u:%u [%u:%u:%u:%u]", album_x, album_y, r.left(), r.top(), r.right(), r.bottom());
-
 
     QWidget::update();
 }
@@ -759,7 +757,8 @@ void AlbumDisplay::mousePressEvent(QMouseEvent *e) {
      * Capture the "click on X" here and call this->close().
      */
 
-    if (album_x == 0)
+    // FIXME: temporary hack until real close graphics added
+    if (!animating())
         QWidget::close();
 }
 
