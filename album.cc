@@ -633,8 +633,10 @@ AlbumDisplay::AlbumDisplay(AlbumBrowser *browser_) : AsyncRender(NULL) {
      * versa.
      */
 
-    album_x = orig_x = (buffer.size().width() - cover.size().height()) / 2;
-    album_y = orig_y = (buffer.size().height() - cover.size().width()) / 2;
+    album_x = orig_x = (buffer.size().width() - cover.size().width()) / 2;
+
+    album_y = orig_y = (buffer.size().height() - cover.size().height()) / 2;
+    LOG.info("album_y = %u, A = %u, B = %u", album_x, buffer.size().height(), cover.size().height());
 
 }
 
@@ -651,21 +653,16 @@ AlbumDisplay::~AlbumDisplay(void) {
 void AlbumDisplay::animate(void) {
     //    LOG.debug("+ animate");
 
-    /*
-    uint32_t m = qMax((uint32_t)1, orig_x - album_x);
-    uint32_t p = m * orig_x / 100;
-    */
-
     uint32_t incr_x = qMax(album_x / 10, orig_x / 100);
     uint32_t incr_y = qMax(album_y / 10, orig_y / 100);
+
+    LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_y);
 
     album_x        -= qMin(album_x, incr_x);
     album_y        -= qMin(album_y, incr_y);
 
     if (album_x == 0 || album_y == 0)
         doAnimate(0);
-
-    //    LOG.debug("album_x %u -> %u (p = %u)", orig, album_x, incr);
 
     doRender();
 }
@@ -689,6 +686,7 @@ void AlbumDisplay::render(void) {
      * FIXME: This is expensive..
      */
 
+    /*
     for (uint16_t x = 0; x < bg.size().width(); x++)
         for (uint16_t y = 0; y < bg.size().height(); y++) {
             QRgb c = bg.pixel(x, y);
@@ -699,6 +697,22 @@ void AlbumDisplay::render(void) {
 
             bg.setPixel(x, y, qRgb(r, g, b));
         }
+    */
+
+    uint32_t *px;
+    uint8_t r, g, b;
+
+    for (uint16_t y = 0; y < bg.size().height(); y++) {
+        px = (uint32_t*)bg.scanLine(y);
+        for (uint16_t x = 0; x < bg.size().width(); x++) {
+            r = qRed(px[x])   * album_x / orig_x;
+            g = qGreen(px[x]) * album_x / orig_x;
+            b = qBlue(px[x])  * album_x / orig_x;
+            //            bg.setPixel(x, y, qRgb(r, g, b));
+            *px = qRgb(r,g,b);
+        }
+    }
+
 
     QPainter p(&buffer);
     p.drawImage(0, 0, bg);
@@ -721,12 +735,12 @@ void AlbumDisplay::render(void) {
             QSize(cover.size()));
     */
 
-    QRect r(QPoint(0, cover.size().height()/2/3),
+    QRect rect(QPoint(0, cover.size().height()/2/3),
             cover.size());
 
-    p.drawImage(QPoint(album_x, album_y), cover, r);
+    p.drawImage(QPoint(album_x, album_y), cover, rect);
 
-    LOG.debug("drawing cover @ %u:%u [%u:%u:%u:%u]", album_x, album_y, r.left(), r.top(), r.right(), r.bottom());
+    //    LOG.debug("drawing cover @ %u:%u [%u:%u:%u:%u]", album_x, album_y, r.left(), r.top(), r.right(), r.bottom());
 
 
     QWidget::update();
