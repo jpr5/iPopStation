@@ -89,6 +89,8 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
      */
 
     uint16_t stop = out.size().height();
+
+    /*
     for (uint16_t x = 0; x < c_width; x++)
         for (uint16_t y = padding+c_height; y < stop; y++) {
             QRgb c = out.pixel(x, y);
@@ -99,6 +101,22 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
 
             out.setPixel(x, y, qRgb(r, g, b));
         }
+    */
+
+    uint32_t *px;
+    uint8_t r, g, b;
+
+    for (uint16_t y = padding+c_height; y < stop; y++) {
+        px = (uint32_t*)out.scanLine(y);
+        for (uint16_t x = 0; x < c_width; x++) {
+            r = qRed(px[x])   * (stop - y) / stop;
+            g = qGreen(px[x]) * (stop - y) / stop;
+            b = qBlue(px[x])  * (stop - y) / stop;
+
+            px[x] = qRgb(r, g, b);
+        }
+    }
+
 
     image = out.transformed(QMatrix().rotate(270));
 }
@@ -653,6 +671,11 @@ AlbumDisplay::~AlbumDisplay(void) {
 void AlbumDisplay::animate(void) {
     //    LOG.debug("+ animate");
 
+    /*
+     * Calculate the incremental movements, which right now takes off
+     * 10% of distance to destination each time through.
+     */
+
     uint32_t incr_x = qMax(album_x / 10, orig_x / 100);
     uint32_t incr_y = qMax(album_y / 10, orig_y / 100);
 
@@ -668,8 +691,6 @@ void AlbumDisplay::animate(void) {
 }
 
 void AlbumDisplay::render(void) {
-    //    LOG.debug("+ render");
-
     /*
      * Calculate % fade as % distance covered by album to final point:
      *     (orig_x - album_x) / album_x
@@ -682,23 +703,6 @@ void AlbumDisplay::render(void) {
      * to leave room for other stuff.
      */
 
-    /*
-     * FIXME: This is expensive..
-     */
-
-    /*
-    for (uint16_t x = 0; x < bg.size().width(); x++)
-        for (uint16_t y = 0; y < bg.size().height(); y++) {
-            QRgb c = bg.pixel(x, y);
-
-            uint8_t r = qRed(c)   * (album_x) / orig_x;
-            uint8_t g = qGreen(c) * (album_x) / orig_x;
-            uint8_t b = qBlue(c)  * (album_x) / orig_x;
-
-            bg.setPixel(x, y, qRgb(r, g, b));
-        }
-    */
-
     uint32_t *px;
     uint8_t r, g, b;
 
@@ -708,7 +712,6 @@ void AlbumDisplay::render(void) {
             r = qRed(px[x])   * album_x / orig_x;
             g = qGreen(px[x]) * album_x / orig_x;
             b = qBlue(px[x])  * album_x / orig_x;
-            //            bg.setPixel(x, y, qRgb(r, g, b));
             px[x] = qRgb(r,g,b);
         }
     }
@@ -716,24 +719,6 @@ void AlbumDisplay::render(void) {
 
     QPainter p(&buffer);
     p.drawImage(0, 0, bg);
-
-    /*
-     * Now draw the cover on top of the image.  Using Qt primitives
-     * instead of raytracing, we need to account for the
-     * inverted/mirrored image.
-     */
-
-    /*    QRect r;
-    r.setLeft(album.image.size().width()/3);
-    r.setRight(album.image.size().width());
-    r.setBottom(album.image.size().height());
-    */
-
-
-    /*
-    QRect r(QPoint(cover.size().height()/2/3, 0),
-            QSize(cover.size()));
-    */
 
     QRect rect(QPoint(0, cover.size().height()/2/3),
             cover.size());
