@@ -709,7 +709,7 @@ void AlbumDisplay::render(void) {
             g = qGreen(px[x]) * album_x / orig_x;
             b = qBlue(px[x])  * album_x / orig_x;
             //            bg.setPixel(x, y, qRgb(r, g, b));
-            *px = qRgb(r,g,b);
+            px[x] = qRgb(r,g,b);
         }
     }
 
