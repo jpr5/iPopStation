@@ -662,8 +662,13 @@ void AlbumDisplay::animate(void) {
      * 10% of distance to destination each time through.
      */
 
+    /*
     uint32_t incr_x = qMax(album_x / 10, orig_x / 100);
     uint32_t incr_y = qMax(album_y / 10, orig_y / 100);
+    */
+
+    uint32_t incr_x = qMax(album_x / 10, (uint32_t)1);
+    uint32_t incr_y = qMax(album_y / 10, (uint32_t)1);
 
     LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_y);
 
