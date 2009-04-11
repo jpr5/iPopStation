@@ -90,19 +90,6 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
 
     uint16_t stop = out.size().height();
 
-    /*
-    for (uint16_t x = 0; x < c_width; x++)
-        for (uint16_t y = padding+c_height; y < stop; y++) {
-            QRgb c = out.pixel(x, y);
-
-            uint8_t r = qRed(c)   * (stop - y) / stop;
-            uint8_t g = qGreen(c) * (stop - y) / stop;
-            uint8_t b = qBlue(c)  * (stop - y) / stop;
-
-            out.setPixel(x, y, qRgb(r, g, b));
-        }
-    */
-
     uint32_t *px;
     uint8_t r, g, b;
 
@@ -117,7 +104,6 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
         }
     }
 
-
     image = out.transformed(QMatrix().rotate(270));
 }
 
@@ -127,7 +113,7 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
 /* ------------- */
 
 AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncRender(parent) {
-    LOG.puke("albumBrowser\n");
+    LOG.puke("albumBrowser");
     c_zoom   = 100;
     c_width  = 135;
     c_height = 175;
@@ -497,6 +483,10 @@ void AlbumBrowser::setCoverSize(QSize s) {
     c_height = s.height();
 }
 
+QSize AlbumBrowser::coverSize(void) {
+    return QSize(c_width, c_height);
+}
+
 const AlbumCover &AlbumBrowser::currentCover(void) {
     LOG.puke("currentCover\n");
 
@@ -637,25 +627,21 @@ AlbumDisplay::AlbumDisplay(AlbumBrowser *browser_) : AsyncRender(NULL) {
     QWidget::setAttribute(Qt::WA_DeleteOnClose);
 
     browser = browser_;
-    album   = browser->currentCover();
-    cover   = album.image.transformed(QMatrix().rotate(-90)).mirrored(false, true);
     bg      = browser->displayBuffer();
+    cover   = browser->currentCover().image.transformed(QMatrix().rotate(-90)).mirrored(false, true);
     buffer  = bg.copy();
 
     /*
      * Calculate initial position on-screen, which we'll eventually
      * relocate to upper-left offset.
-     *
-     * NOTE: Remember the images are mirrored/inverted for quick draws
-     * using scanline(), so the image's height is the width, and vice
-     * versa.
      */
 
-    album_x = orig_x = (buffer.size().width() - cover.size().width()) / 2;
+    QSize cs = browser->coverSize();
 
-    album_y = orig_y = (buffer.size().height() - cover.size().height()) / 2;
+    album_x = orig_x = (buffer.size().width() - cs.width()) / 2;
+    album_y = orig_y = (buffer.size().height() - cs.height()) / 2;
+
     LOG.info("album_y = %u, A = %u, B = %u", album_x, buffer.size().height(), cover.size().height());
-
 }
 
 AlbumDisplay::~AlbumDisplay(void) {

@@ -77,6 +77,7 @@ class AlbumBrowser : public AsyncRender {
     void loadCovers(QList<QString> &);
     void resetCovers(void);
     void setCoverSize(QSize);
+    QSize coverSize(void);
     const AlbumCover &currentCover(void);
 
     void displayAlbum(void);
