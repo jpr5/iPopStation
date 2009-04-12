@@ -42,16 +42,13 @@ class AlbumBrowser : public AsyncRender {
     Q_OBJECT;
 
  private:
-    /*
-     * Display mode: (l,r)b == (left,right)-bound, for detecting album
-     * vs. navigation clicks.
-     */
 
+    /* display mode (browse, display) */
     typedef enum {
         M_BROWSE = 0, M_DISPLAY
-    } mode_t;
+    } displaymode_t;
 
-    mode_t d_mode;
+    displaymode_t d_mode;
     uint16_t d_lb, d_rb;
 
     /* covers */
@@ -71,16 +68,17 @@ class AlbumBrowser : public AsyncRender {
     QVector<FPreal_t> rays;
 
     /* Utility */
+    void resizeView(const QSize &, bool reset);
+
     void renderDisplay(void);
     void renderBrowse(void);
     void animateDisplay(void);
     void animateBrowse(void);
 
     void  prepRender(bool reset);
-    QRect renderCover(AlbumCover &, int16_t = -1, int16_t = -1);
     void  arrangeCovers(int32_t = 0);
+    QRect renderCover(AlbumCover &, int16_t = -1, int16_t = -1);
 
-    void  resizeView(const QSize &, bool reset);
 
  protected slots:
 

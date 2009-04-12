@@ -140,36 +140,41 @@ void AlbumBrowser::displayAlbum(void) {
 
     album_x = orig_x = (buffer.size().width() - cs.width()) / 2;
     album_y = orig_y = (buffer.size().height() - cs.height()) / 2;
-
-    LOG.debug("album_x = %u, album_y = %u, [%u, %u]",
-              album_x, album_y, buffer.size().width(), buffer.size().height());
 }
 
 
 void AlbumBrowser::arrangeCovers(int32_t factor) {
-
     /*
      * TODO: Optimize by calculating these values once and assigning
      * +/- value outward from center (c_focus).  Not a big win on
      * large displays + large lists.
      */
 
-    for (int16_t i = c_focus - 1; i != -1; i--) {
-        AlbumCover &a = covers[i];
-        a.angle = tilt_factor;
-        a.cx    = -(r_offsetX + (spacing_offset*(c_focus-1-i)*FPreal_ONE) + factor);
-        a.cy    = r_offsetY;
+    AlbumCover *a;
 
-        LOG.puke("cover[%u] = %i, %i, %i", i, a.angle, a.cx, a.cy);
+    if (factor == 0) {
+        a = &covers[c_focus];
+        a->angle = 0;
+        a->cx    = 0;
+        a->cy    = 0;
+    }
+
+    for (int16_t i = c_focus - 1; i != -1; i--) {
+        a = &covers[i];
+        a->angle = tilt_factor;
+        a->cx    = -(r_offsetX + (spacing_offset*(c_focus-1-i)*FPreal_ONE) + factor);
+        a->cy    = r_offsetY;
+
+        LOG.puke("cover[%u] = %i, %i, %i", i, a->angle, a->cx, a->cy);
     }
 
     for (uint16_t i = c_focus + 1; i < covers.size(); i++) {
-        AlbumCover &a = covers[i];
-        a.angle = -tilt_factor;
-        a.cx    = r_offsetX + (spacing_offset*(i-c_focus-1)*FPreal_ONE) - factor;
-        a.cy    = r_offsetY;
+        a = &covers[i];
+        a->angle = -tilt_factor;
+        a->cx    = r_offsetX + (spacing_offset*(i-c_focus-1)*FPreal_ONE) - factor;
+        a->cy    = r_offsetY;
 
-        LOG.puke("cover[%u] = %i, %i, %i", i, a.angle, a.cx, a.cy);
+        LOG.puke("cover[%u] = %i, %i, %i", i, a->angle, a->cx, a->cy);
     }
 }
 
@@ -271,7 +276,7 @@ void AlbumBrowser::renderBrowse(void) {
     QRect r, rc;
 
     r = renderCover(covers[c_focus]);
-    LOG.debug("initial bound: [%u, %u]", r.left(), r.right());
+    LOG.puke("initial bound: [%u, %u]", r.left(), r.right());
 
     /*
      * Then render all remaining covers, left-side right-to-left, and
@@ -432,13 +437,13 @@ void AlbumBrowser::animateDisplay(void) {
 
 void AlbumBrowser::animateBrowse(void) {
     LOG.puke("** animateBrowse");
-
+    /*
     if (f_direction == 0) {
         LOG.warn("no directional change, bailing");
         doAnimate(false);
         return;
     }
-
+    */
     int16_t c_target = c_focus + f_direction;
 
     /*
@@ -490,14 +495,15 @@ void AlbumBrowser::animateBrowse(void) {
      */
 
     if (c_idx == c_target) {
+        LOG.debug("%i, %i, %i", a->angle, a->cx, a->cy);
+
+        doAnimate(false);
 
         c_focus     = c_idx;
         f_frame     = c_idx << 16;
         f_direction = 0;
 
         arrangeCovers();
-
-        doAnimate(false);
 
     } else {
 
@@ -507,7 +513,7 @@ void AlbumBrowser::animateBrowse(void) {
 
         int32_t factor = f_direction * spacing_offset * ftick;
 
-        LOG.debug("animating (factor = %i)", factor);
+        LOG.puke("animating (factor = %i)", factor);
 
         arrangeCovers(factor);
 
@@ -573,11 +579,6 @@ void AlbumBrowser::setCoverSize(QSize s) {
 
     c_width  = s.width();
     c_height = s.height();
-
-    d_lb = (size().width() / 2) - (c_width / 2);
-    d_rb = d_lb + c_width;
-
-    LOG.debug("d_lb = %u, d_rb = %u", d_lb, d_rb);
 }
 
 QSize AlbumBrowser::coverSize(void) {
@@ -607,15 +608,20 @@ void AlbumBrowser::resizeView(const QSize &s, bool reset) {
     buffer = QImage(s, QImage::Format_RGB32);
     buffer.fill(Qt::black);
 
+    d_lb = (size().width() / 2) - (c_width / 2);
+    d_rb = d_lb + c_width;
+
+    LOG.debug("d_lb = %u, d_rb = %u", d_lb, d_rb);
+
     switch (d_mode) {
         case M_DISPLAY: {
-            doAnimate();
+            renderDisplay();
         } break;
 
         default:
         case M_BROWSE: {
             prepRender(reset);
-            render();
+            renderBrowse();
         } break;
     };
 }
@@ -670,13 +676,13 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
                  */
 
                 if (animating()) {
-                    LOG.debug("changing mode mid-animation");
-
                     doAnimate(0);
+
                     c_focus += f_direction;
-                    f_frame = c_focus << 16;
+                    f_frame  = c_focus << 16;
                     f_direction = 0;
 
+                    arrangeCovers();
                     render();
                 }
 
@@ -691,11 +697,12 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
         case M_DISPLAY: {
 
             d_mode      = M_BROWSE;
-            f_direction = 0;
+            //            f_direction = 0;
 
             bg = cover = QImage();
 
             doRender();
+            //doAnimate();
 
         } break;
     };
