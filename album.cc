@@ -68,11 +68,19 @@ const AlbumCover &AlbumCover::operator=(const AlbumCover &a) {
 void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
     LOG.puke("process(%u, %u)", c_width, c_height);
 
-    image = image.scaled(c_width, c_height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).mirrored(true, false);
-    uint16_t padding = c_height/3;
+    image = image.scaled(c_width, c_height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 
     QImage out(c_width, c_height*2, QImage::Format_RGB32);
     QPainter p(&out);
+
+    uint16_t padding = c_height/3;
+
+    /*
+     * TODO: Don't draw the entire image a second time; limit it to
+     * half maybe?  and/or make it equivalent to the top-level pad.
+     * Hopefully everything else will automatically do the
+     * faux-transparency and rendering correctly.
+     */
 
     p.translate(0, padding);
     p.drawImage(0, 0, image);
@@ -82,14 +90,13 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
     p.end();
 
     /*
-     * Pull out RGB values and make a faux transparency.
+     * Faux alpha blend the bottom vertically-flipped portion.
      *
-     * Don't fuck with this syntax, the transient float (% strength)
-     * will stop working. :-(
+     * NOTE: Don't fuck with this syntax, the transient float (%
+     * strength) will stop working. :-(
      */
 
     uint16_t stop = out.size().height();
-
     uint32_t *px;
     uint8_t r, g, b;
 
@@ -104,7 +111,7 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
         }
     }
 
-    image = out.transformed(QMatrix().rotate(270));
+    image = out;
 }
 
 /* ------------- */
@@ -136,10 +143,11 @@ void AlbumBrowser::displayAlbum(void) {
     bg    = buffer.copy();
     cover = currentCover().image;
 
-    uint16_t offset = cover.size().width() / 6;
+    uint16_t offset = cover.size().height() / 6;
 
-    cover = cover.copy(offset, 0, offset*5, cover.size().height());
-    cover = cover.transformed(QMatrix().rotate(-90)).mirrored(false, true);
+    //    cover = cover.copy(0, offset, cover.size().width(), c_height + c_height/3);
+    cover = cover.copy(0, offset, cover.size().width(), offset*5);
+
 
     /*
      * Calculate initial position on-screen, which we'll eventually
@@ -247,12 +255,12 @@ void AlbumBrowser::renderDisplay(void) {
      * to leave room for other stuff.  If so, should be some % of
      * current size, maintaining existing aspect ratio.
      */
-#if 1
-    uint32_t *px_in, *px_out;
-    uint8_t r, g, b;
-
+#if TEST
     uint16_t x_lim = qMin(buffer.size().width(), bg.size().width());
     uint16_t y_lim = qMin(buffer.size().height(), bg.size().height());
+
+    uint32_t *px_in, *px_out;
+    uint8_t r, g, b;
 
     for (uint16_t y = 0; y < y_lim; y++) {
         px_in  = (uint32_t*)bg.scanLine(y);
@@ -325,8 +333,8 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
     QRect rect(0, 0, 0, 0);
     QImage &src = a.image;
 
-    int sw = src.height();
-    int sh = src.width();
+    int sw = src.width();
+    int sh = src.height();
     int h = buffer.height();
     int w = buffer.width();
 
@@ -343,19 +351,19 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
         return rect;
     }
 
-    int distance = h * 100 / c_zoom;
     FPreal_t sdx = fcos(a.angle);
     FPreal_t sdy = fsin(a.angle);
-    FPreal_t xs = a.cx - c_width * sdx/2;
-    FPreal_t ys = a.cy - c_width * sdy/2;
+    FPreal_t xs = a.cx - sw * sdx/2;
+    FPreal_t ys = a.cy - sw * sdy/2;
+
+    int distance = h * 100 / c_zoom;
     FPreal_t dist = distance * FPreal_ONE;
 
-    //                      start from middle  +/- distance
     int xi = qMax((FPreal_t)0, FPreal_CAST((w*FPreal_ONE/2) + fdiv(xs*h, dist+ys)));
     if (xi >= w)
         return rect;
 
-    LOG.puke("[ %i ]   %i   [ %i ]", lb, xi, rb);
+    LOG.puke("** [ %i ]   %i   [ %i ]", lb, xi, rb);
 
     bool flag = false;
     rect.setLeft(xi);
@@ -364,7 +372,7 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
         FPreal_t hity = 0;
         FPreal_t fk = rays[x];
         if (sdy) {
-            fk = fk - fdiv(sdx,sdy);
+            fk  -= fdiv(sdx,sdy);
             hity = -fdiv((rays[x]*distance - a.cx + a.cy*sdx/sdy), fk);
         }
 
@@ -386,27 +394,44 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
             rect.setLeft(x);
         flag = true;
 
-        int y1 = h/2;
-        int y2 = y1+ 1;
-        QRgb *pixel1 = (QRgb*)(buffer.scanLine(y1)) + x;
-        QRgb *pixel2 = (QRgb*)(buffer.scanLine(y2)) + x;
-        QRgb pixelstep = pixel2 - pixel1;
+        int32_t out_y1  = h/2;
+        int32_t out_y2  = out_y1 + 1;
+        QRgb *out_px1   = (QRgb*)(buffer.scanLine(out_y1)) + x;
+        QRgb *out_px2   = (QRgb*)(buffer.scanLine(out_y2)) + x;
+        QRgb out_pxstep = out_px2 - out_px1;
 
-        int center = (sh/2);
-        int dy = dist / h;
-        int p1 = center*FPreal_ONE - dy/2;
-        int p2 = center*FPreal_ONE + dy/2;
+        int32_t in_x   = column;
+        int32_t in_y1  = (sh/2);
+        int32_t in_y2  = in_y1 + 1;
+        QRgb *in_px1   = (QRgb*)(src.scanLine(in_y1)) + in_x;
+        QRgb *in_px2   = (QRgb*)(src.scanLine(in_y2)) + in_x;
+        QRgb in_pxstep = in_px2 - in_px1;
 
-        const QRgb *ptr = (const QRgb*)(src.scanLine(column));
-        while((y1 >= 0) && (y2 < h) && (p1 >= 0)) {
-            *pixel1 = ptr[FPreal_CAST(p1)];
-            *pixel2 = ptr[FPreal_CAST(p2)];
-            p1 -= dy;
-            p2 += dy;
-            y1--;
-            y2++;
-            pixel1 -= pixelstep;
-            pixel2 += pixelstep;
+        int16_t dy = dist / h;
+        uint16_t diff;
+
+        int32_t in_p1 = in_y1*FPreal_ONE - dy/2;
+        int32_t in_p2 = in_y1*FPreal_ONE + dy/2;
+
+        while ((out_y1 >= 0 && out_y2 < h) && (in_p1  >= 0)) {
+            *out_px1 = *in_px1;
+            *out_px2 = *in_px2;
+
+            out_y1--;
+            out_y2++;
+            out_px1 -= out_pxstep;
+            out_px2 += out_pxstep;
+
+            in_p1 -= dy;
+            in_p2 += dy;
+
+            diff = abs(FPreal_CAST(in_p1) - in_y1);
+            if (diff != 0) {
+                in_y1  -= diff;
+                in_px1 -= in_pxstep*diff;
+                in_y2  += diff;
+                in_px2 += in_pxstep*diff;
+            }
         }
     }
 
@@ -460,13 +485,7 @@ void AlbumBrowser::animateDisplay(void) {
 
 void AlbumBrowser::animateBrowse(void) {
     LOG.puke("** animateBrowse");
-    /*
-    if (f_direction == 0) {
-        LOG.warn("no directional change, bailing");
-        doAnimate(false);
-        return;
-    }
-    */
+
     int16_t c_target = c_focus + f_direction;
 
     /*
@@ -476,37 +495,38 @@ void AlbumBrowser::animateBrowse(void) {
      * (effectively a non-animated render of c_focus).
      */
 
-    if (c_target < 0 || c_target >= covers.size()) {
+    if (c_target < 0 || c_target == covers.size()) {
         c_target = c_focus;
         f_frame  = c_target << 16;
     }
 
-    int32_t f_idx = f_frame - (c_target << 16);
-    if (f_idx < 0)
-        f_idx = -f_idx;
-    f_idx = qMin((int)f_idx, (int)f_max);
+    /*
+     * Calculate the next "frame" increment and update f_frame.
+     */
 
-    // with f_idx bounded by f_max
-    // IANGLE_MAX * (f_idx - half of max) / (twice the max)
-    int32_t angle  = IANGLE_MAX * (f_idx-f_max/2) / (f_max*2);
-    uint32_t speed = 512 + (16384 * (FPreal_ONE+fsin(angle))/FPreal_ONE);
+    uint32_t f_diff   = qMin( abs(f_frame - (c_target<<16)), (int)f_max);
+    uint32_t f_iangle = IANGLE_MAX * (f_diff-f_max/2) / (f_max*2);
+    uint32_t f_incr   = 512 + (16384 * (FPreal_ONE+fsin(f_iangle))/FPreal_ONE);
 
-    f_frame += speed * f_direction;
+    f_frame += f_incr * f_direction;
 
-    LOG.puke("angle = %i, speed = %u, f_frame = %i (dir = %i)", angle, speed, f_frame, f_direction);
+    LOG.puke("[%u] angle = %i (%i), incr = %i (+%i @%i)", c_focus, f_iangle, f_iangle & IANGLE_MASK, f_incr, f_diff, f_frame);
 
-    int32_t c_idx  = f_frame >> 16;
+    /*
+     * Update the raytrace data for the cover in transition.
+     *
+     * Frames reference a cover's lb, so (after f_incr'ing) moving
+     * left will reference the next-left cover, which would be wrong.
+     * When moving right, we don't have to worry about that.
+     */
+
+    int32_t c_idx  = (f_frame >> 16) + (f_direction < 0);
     int32_t pos    = f_frame & 0xffff;
     int32_t neg    = 65536 - pos;
-    int tick       = (f_direction < 0) ? neg : pos;
+    int32_t  tick  = (f_direction < 0) ? neg : pos;
     FPreal_t ftick = (tick * FPreal_ONE) >> 16;
 
-    LOG.puke("c_idx = %i, pos = %i, neg = %i, tick = %i, ftick = %i", c_idx, pos, neg, tick, ftick);
-
-    if (f_direction < 0)
-        c_idx++;
-
-    LOG.puke("c_focus = %i (%i) [%i], c_target = %i", c_focus, c_idx, f_direction, c_target);
+    LOG.puke("[%i -> %i] pos = %i, neg = %i, tick = %i, ftick = %i", c_idx, c_target, pos, neg, tick, ftick);
 
     AlbumCover *a = &(covers[c_idx]);
     a->angle = (f_direction * tick * tilt_factor) >> 16;
@@ -665,16 +685,26 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
         case M_BROWSE: {
             if (e->x() <= d_lb) {
 
+                /*
+                 * If we still have room, and we're already moving
+                 * left, bring the next left cover into focus.
+                 */
+
                 if (c_focus > 0)
-                    if (f_direction < 0 && animating())
+                    if (f_direction < 0)
                         c_focus--;
                     else
                         f_direction = -1;
 
             } else if (e->x() >= d_rb) {
 
+                /*
+                 * If we still have room, and we're already moving
+                 * right, bring the next right cover into focus.
+                 */
+
                 if (c_focus < covers.size()-1)
-                    if (f_direction > 0 && animating())
+                    if (f_direction > 0)
                         c_focus++;
                     else
                         f_direction = 1;
