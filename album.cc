@@ -144,12 +144,6 @@ void AlbumBrowser::displayAlbum(void) {
 
 
 void AlbumBrowser::arrangeCovers(int32_t factor) {
-    /*
-     * TODO: Optimize by calculating these values once and assigning
-     * +/- value outward from center (c_focus).  Not a big win on
-     * large displays + large lists.
-     */
-
     AlbumCover *a;
 
     /*
@@ -236,15 +230,12 @@ void AlbumBrowser::renderDisplay(void) {
     LOG.puke("** renderDisplay");
 
     /*
-     * Calculate % fade as % distance covered by album to final point:
-     *     (orig_x - album_x) / album_x
-     *
-     * Faux-fade bg
-     * copy bg onto buffer
-     * start moving the album
+     * Faux-fade the background
+     * Draw album cover
      *
      * TODO: we may need to scale the image down on smaller interfaces
-     * to leave room for other stuff.
+     * to leave room for other stuff.  If so, should be some % of
+     * current size, maintaining existing aspect ratio.
      */
 
     uint32_t *px_in, *px_out;
@@ -427,15 +418,27 @@ void AlbumBrowser::animate(void) {
 void AlbumBrowser::animateDisplay(void) {
     LOG.puke("** animateDisplay");
 
-    uint32_t incr_x = qMax(album_x / 10, (uint32_t)1);
-    uint32_t incr_y = qMax(album_y / 10, (uint32_t)1);
+    /*
+     * For now, transition album in 10% increments on both X and Y.
+     * Initial target is upper-left 3x3 px margin, but the scale/size
+     * and placement should be based on the overall size of the buffer
+     * and margins eventually around everything.
+     */
+
+    static const int16_t target_x = 3, target_y = 3;
+
+    uint16_t incr_x = (orig_x - target_x) / 10;
+    uint16_t incr_y = (orig_y - target_y) / 10;
+
+    album_x -= incr_x;
+    album_y -= incr_y;
+
+    album_x = qMax(album_x, target_x);
+    album_y = qMax(album_y, target_y);
 
     LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_y);
 
-    album_x -= qMin(album_x, incr_x);
-    album_y -= qMin(album_y, incr_y);
-
-    if (album_x == 0 || album_y == 0)
+    if (album_x == target_x || album_y == target_y)
         doAnimate(0);
 
     doRender();
