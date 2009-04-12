@@ -247,7 +247,7 @@ void AlbumBrowser::renderDisplay(void) {
      * to leave room for other stuff.  If so, should be some % of
      * current size, maintaining existing aspect ratio.
      */
-
+#if 1
     uint32_t *px_in, *px_out;
     uint8_t r, g, b;
 
@@ -265,6 +265,9 @@ void AlbumBrowser::renderDisplay(void) {
             px_out[x] = qRgb(r,g,b);
         }
     }
+#else
+    buffer.fill(Qt::black);
+#endif
 
     QPainter p(&buffer);
     p.drawImage(QPoint(album_x, album_y), cover);
