@@ -129,7 +129,7 @@ AlbumBrowser::~AlbumBrowser(void) {
 
 void AlbumBrowser::displayAlbum(void) {
     /*
-     * Make a smaller copy of the cover's image and un-fuck it to
+     * Make a smaller copy of the cover's image and un-distort it to
      * simplify drawing.
      */
 
@@ -143,7 +143,7 @@ void AlbumBrowser::displayAlbum(void) {
 
     /*
      * Calculate initial position on-screen, which we'll eventually
-     * relocate to upper-left offset.
+     * relocate to some upper-left offset.
      */
 
     QSize cs = coverSize();
@@ -251,11 +251,14 @@ void AlbumBrowser::renderDisplay(void) {
     uint32_t *px_in, *px_out;
     uint8_t r, g, b;
 
-    for (uint16_t y = 0; y < bg.size().height(); y++) {
+    uint16_t x_lim = qMin(buffer.size().width(), bg.size().width());
+    uint16_t y_lim = qMin(buffer.size().height(), bg.size().height());
+
+    for (uint16_t y = 0; y < y_lim; y++) {
         px_in  = (uint32_t*)bg.scanLine(y);
         px_out = (uint32_t*)buffer.scanLine(y);
 
-        for (uint16_t x = 0; x < bg.size().width(); x++) {
+        for (uint16_t x = 0; x < x_lim; x++) {
             r = qRed(px_in[x])   * album_x / orig_x;
             g = qGreen(px_in[x]) * album_x / orig_x;
             b = qBlue(px_in[x])  * album_x / orig_x;
@@ -512,7 +515,6 @@ void AlbumBrowser::animateBrowse(void) {
      */
 
     if (c_idx == c_target) {
-        LOG.debug("%i, %i, %i", a->angle, a->cx, a->cy);
 
         doAnimate(false);
 
@@ -628,19 +630,15 @@ void AlbumBrowser::resizeView(const QSize &s, bool reset) {
     d_lb = (size().width() / 2) - (c_width / 2);
     d_rb = d_lb + c_width;
 
-    LOG.debug("d_lb = %u, d_rb = %u", d_lb, d_rb);
+    LOG.puke("d_lb = %u, d_rb = %u", d_lb, d_rb);
 
     switch (d_mode) {
-        case M_DISPLAY: {
-            renderDisplay();
-        } break;
-
-        default:
         case M_BROWSE: {
             prepRender(reset);
-            renderBrowse();
         } break;
     };
+
+    render();
 }
 
 void AlbumBrowser::resizeEvent(QResizeEvent *e) {
