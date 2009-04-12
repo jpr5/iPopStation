@@ -519,7 +519,6 @@ void AlbumBrowser::animateBrowse(void) {
         doAnimate(false);
 
         c_focus     = c_idx;
-        f_frame     = c_idx << 16;
         f_direction = 0;
 
         arrangeCovers();
@@ -632,11 +631,8 @@ void AlbumBrowser::resizeView(const QSize &s, bool reset) {
 
     LOG.puke("d_lb = %u, d_rb = %u", d_lb, d_rb);
 
-    switch (d_mode) {
-        case M_BROWSE: {
-            prepRender(reset);
-        } break;
-    };
+    if (d_mode == M_BROWSE)
+        prepRender(reset);
 
     render();
 }
@@ -701,13 +697,10 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
             }
 
             doAnimate();
-
         } break;
 
         case M_DISPLAY: {
-
             d_mode      = M_BROWSE;
-
             bg = cover = QImage();
 
             doRender();
