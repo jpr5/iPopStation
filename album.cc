@@ -152,11 +152,19 @@ void AlbumBrowser::arrangeCovers(int32_t factor) {
 
     AlbumCover *a;
 
+    /*
+     * factor != 0 is a transition state; when 0 there is no
+     * transition and we should reset whatever ray info might
+     * previously exist.
+     */
+
     if (factor == 0) {
         a = &covers[c_focus];
         a->angle = 0;
         a->cx    = 0;
         a->cy    = 0;
+
+        f_frame  = c_focus << 16;
     }
 
     for (int16_t i = c_focus - 1; i != -1; i--) {
@@ -199,10 +207,8 @@ void AlbumBrowser::prepRender(bool reset) {
         ((c_width / 2) * fsin(tilt_factor)) +
         (c_width * FPreal_ONE / 4);
 
-    if (reset) {
+    if (reset)
         c_focus = covers.size()/2;
-        f_frame = c_focus << 16;
-    }
 
     arrangeCovers();
 }
@@ -669,17 +675,12 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
 
                 /*
                  * Album was clicked.
-                 *
-                 * FIXME: is all this necessary?  Still leaves
-                 * browser's mid-render display when browser is
-                 * re-show()'d.
                  */
 
                 if (animating()) {
                     doAnimate(0);
 
-                    c_focus += f_direction;
-                    f_frame  = c_focus << 16;
+                    c_focus    += f_direction;
                     f_direction = 0;
 
                     arrangeCovers();
@@ -697,13 +698,10 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
         case M_DISPLAY: {
 
             d_mode      = M_BROWSE;
-            //            f_direction = 0;
 
             bg = cover = QImage();
 
             doRender();
-            //doAnimate();
-
         } break;
     };
 
