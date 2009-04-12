@@ -128,8 +128,18 @@ AlbumBrowser::~AlbumBrowser(void) {
 }
 
 void AlbumBrowser::displayAlbum(void) {
+    /*
+     * Make a smaller copy of the cover's image and un-fuck it to
+     * simplify drawing.
+     */
+
     bg    = buffer.copy();
-    cover = currentCover().image.transformed(QMatrix().rotate(-90)).mirrored(false, true);
+    cover = currentCover().image;
+
+    uint16_t offset = cover.size().width() / 6;
+
+    cover = cover.copy(offset, 0, offset*5, cover.size().height());
+    cover = cover.transformed(QMatrix().rotate(-90)).mirrored(false, true);
 
     /*
      * Calculate initial position on-screen, which we'll eventually
@@ -254,9 +264,7 @@ void AlbumBrowser::renderDisplay(void) {
     }
 
     QPainter p(&buffer);
-    QRect rect(QPoint(0, cover.size().height()/2/3), cover.size());
-
-    p.drawImage(QPoint(album_x, album_y), cover, rect);
+    p.drawImage(QPoint(album_x, album_y), cover);
 }
 
 void AlbumBrowser::renderBrowse(void) {
