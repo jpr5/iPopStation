@@ -148,14 +148,18 @@ void AlbumBrowser::displayAlbum(void) {
     cover = currentCover().image.copy(0, 0, cover.size().width(), cover.size().height());
 
     /*
-     * Calculate initial position on-screen, which we'll eventually
-     * relocate to some upper-left offset.
+     * Calculate initial position on-screen, and derive x/y slope
+     * components & x_incr for each transition (10% per iteration).
      */
 
     QSize cs = coverSize();
 
-    album_x = orig_x = (buffer.size().width() - cs.width())   / 2;
-    album_y = orig_y = (buffer.size().height() - cs.height()) / 2;
+    d_albumx = (buffer.size().width() - cs.width())   / 2;
+    d_albumy = (buffer.size().height() - cs.height()) / 2;
+
+    d_sy = d_albumy - d_targety;
+    d_sx = d_albumx - d_targetx;
+    d_dx = d_sx / 10;
 }
 
 void AlbumBrowser::arrangeCovers(int32_t factor) {
@@ -258,7 +262,7 @@ void AlbumBrowser::renderDisplay(void) {
     uint16_t y_lim = qMin(buffer.size().height(), bg.size().height());
 
     uint32_t *px_in, *px_out;
-    uint8_t r, g, b, f = album_x * 100 / orig_x;
+    uint8_t r, g, b, f = d_albumx * 100 / d_sx;
 
     for (uint16_t y = 0; y < y_lim; y++) {
         px_in  = (uint32_t*)bg.scanLine(y);
@@ -276,7 +280,7 @@ void AlbumBrowser::renderDisplay(void) {
 #endif
 
     QPainter p(&buffer);
-    p.drawImage(QPoint(album_x, album_y), cover);
+    p.drawImage(QPoint(d_albumx, d_albumy), cover);
 }
 
 void AlbumBrowser::renderBrowse(void) {
@@ -492,16 +496,12 @@ void AlbumBrowser::animateDisplay(void) {
      * size of the buffer and margins eventually around everything.
      */
 
-    static const uint16_t target_x = 3, target_y = 3;
+    LOG.debug("animate: [-%u] d_albumx = %u, d_albumy = %u", d_dx, d_albumx, d_albumy);
 
-    uint16_t incr_x = (orig_x - target_x) / 10;
+    d_albumx = qMax(d_albumx - d_dx, (int)d_targetx);
+    d_albumy = qMax(d_sy * d_albumx / d_sx, (int)d_targetx);
 
-    album_x = qMax(album_x - incr_x, (int)target_x);
-    album_y = qMax((orig_y - target_y) * album_x / (orig_x - target_x), (int)target_y);
-
-    LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_x);
-
-    if (album_x == target_x && album_y == target_y)
+    if (d_albumx == d_targetx && d_albumy == d_targety)
         doAnimate(false);
 
     doRender();

@@ -58,8 +58,9 @@ class AlbumBrowser : public AsyncRender {
 
     /* cover display */
     QImage cover, bg;
-    uint16_t orig_x, orig_y;
-    int16_t album_x, album_y;
+    uint16_t d_sx, d_sy, d_dx;
+    uint16_t d_targetx, d_targety;
+    uint16_t d_albumx, d_albumy;
 
     /* raytracing */
     int8_t  f_direction;
