@@ -486,24 +486,23 @@ void AlbumBrowser::animateDisplay(void) {
     LOG.puke("** animateDisplay");
 
     /*
-     * For now, transition album in 10% increments on both X and Y.
-     * Initial target is upper-left 3x3 px margin, but the scale/size
-     * and placement should be based on the overall size of the buffer
-     * and margins eventually around everything.
+     * For now, transition album in 10% increments on X, using the
+     * slope to derive Y. Initial target is upper-left 3x3 px margin,
+     * but the scale/size and placement should be based on the overall
+     * size of the buffer and margins eventually around everything.
      */
 
     static const uint16_t target_x = 3, target_y = 3;
 
     uint16_t incr_x = (orig_x - target_x) / 10;
-    uint16_t incr_y = (orig_y - target_y) / 10;
 
-    album_x = (album_x > incr_x) ? (album_x - incr_x) : target_x;
-    album_y = (album_y > incr_y) ? (album_y - incr_y) : target_y;
+    album_x = qMax(album_x - incr_x, (int)target_x);
+    album_y = qMax((orig_y - target_y) * album_x / (orig_x - target_x), (int)target_y);
 
-    LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_y);
+    LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_x);
 
     if (album_x == target_x && album_y == target_y)
-        doAnimate(0);
+        doAnimate(false);
 
     doRender();
 }
