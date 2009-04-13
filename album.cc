@@ -10,10 +10,11 @@
 #include "album.hh"
 
 /*
- * TODO:
+ * TODO [WISHLIST]
  *
  *   - mousePressEvent/whatever: the active rect for detecting album
- *     display clicks should be updated as the album is be animated.
+ *     display clicks should be updated as the (target) album is be
+ *     animated.
  */
 
 /*
@@ -330,18 +331,18 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
     QRect rect(0, 0, 0, 0);
     QImage &src = a.image;
 
-    int sw = src.width();
-    int sh = src.height();
-    int h = buffer.height();
-    int w = buffer.width();
+    int16_t sw = src.width();
+    int16_t sh = src.height();
+    int16_t h = buffer.height();
+    int16_t w = buffer.width();
 
     if (lb > rb)
         qSwap(lb, rb);
 
     lb = (lb >= 0) ? lb : 0;
     rb = (rb >= 0) ? rb : w-1;
-    lb = qMin((int)lb, w-1);
-    rb = qMin((int)rb, w-1);
+    lb = qMin(lb, (int16_t)(w-1));
+    rb = qMin(rb, (int16_t)(w-1));
 
     if (lb - rb == 0) {
         LOG.puke("not rendering invisible slide");
@@ -353,10 +354,10 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
     FPreal_t xs = a.cx - sw * sdx/2;
     FPreal_t ys = a.cy - sw * sdy/2;
 
-    int distance = h * 100 / c_zoom;
+    int32_t distance = h * 100 / c_zoom;
     FPreal_t dist = distance * FPreal_ONE;
 
-    int xi = qMax((FPreal_t)0, FPreal_CAST((w*FPreal_ONE/2) + fdiv(xs*h, dist+ys)));
+    int32_t xi = qMax((FPreal_t)0, FPreal_CAST((w*FPreal_ONE/2) + fdiv(xs*h, dist+ys)));
     if (xi >= w)
         return rect;
 
@@ -365,7 +366,7 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
     bool flag = false;
     rect.setLeft(xi);
 
-    for (int x = qMax(xi, (int)lb); x <= rb; x++) {
+    for (uint16_t x = qMax(xi, (int)lb); x <= rb; x++) {
         FPreal_t hity = 0;
         FPreal_t fk = rays[x];
         if (sdy) {
@@ -380,7 +381,7 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
         FPreal_t hitx = fmul(dist, rays[x]);
         FPreal_t hitdist = fdiv(hitx - a.cx, sdx);
 
-        int column = sw/2 + FPreal_CAST(hitdist);
+        int16_t column = sw/2 + FPreal_CAST(hitdist);
         if (column >= sw)
             break;
         if (column < 0)
@@ -395,8 +396,9 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
          * Start drawing covers to the middle buffer, with a slight
          * offset (.3 of cover height).
         */
-        int32_t out_y1  = h/2;
-        int32_t out_y2  = out_y1 + 1;
+
+        int16_t out_y1  = h/2;
+        int16_t out_y2  = out_y1 + 1;
         QRgb *out_px1   = (QRgb*)(buffer.scanLine(out_y1)) + x;
         QRgb *out_px2   = (QRgb*)(buffer.scanLine(out_y2)) + x;
         QRgb out_pxstep = out_px2 - out_px1;
@@ -405,19 +407,22 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
          * Start drawning from center of cover size (rather than image
          * size), which assumes no padding but still works if there's
          * other stuff (like a reflection) beneath.
+         *
+         * dy is a fixed-point fractional "tick" inc/decrement that
+         * translates input y coords to output y coords
+         * (bendy/stretchy effect).
          */
 
-        int32_t in_x  = column;
-        int32_t in_y1 = c_height/2;
-        int32_t in_y2 = in_y1 + 1;
+        int16_t dy     = dist / h;
+
+        int32_t in_x   = column;
+        int32_t in_y1  = c_height/2;
+        int32_t in_y2  = in_y1 + 1;
+        int32_t in_p1  = in_y1*FPreal_ONE - dy/2;
+        int32_t in_p2  = in_y2*FPreal_ONE + dy/2;
         QRgb *in_px1   = (QRgb*)(src.scanLine(in_y1)) + in_x;
         QRgb *in_px2   = (QRgb*)(src.scanLine(in_y2)) + in_x;
         QRgb in_pxstep = in_px2 - in_px1;
-
-        int16_t dy = dist / h;
-
-        int32_t in_p1 = in_y1*FPreal_ONE - dy/2;
-        int32_t in_p2 = in_y1*FPreal_ONE + dy/2;
 
         /*
          * Loop over drawing, knowing that it's probably that we'll
@@ -425,11 +430,10 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
          * vs. bottom).
          */
 
-        uint16_t diff;
+        uint16_t tick;
         bool y1_room, y2_room;
 
         do {
-
             y1_room = (in_y1 >= 0 && out_y1 >= 0);
             y2_room = (in_y2 < sh && out_y2 < h);
 
@@ -448,12 +452,12 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
             in_p1 -= dy;
             in_p2 += dy;
 
-            diff = abs(FPreal_CAST(in_p1) - in_y1);
-            if (diff != 0) {
-                in_y1  -= diff;
-                in_px1 -= in_pxstep*diff;
-                in_y2  += diff;
-                in_px2 += in_pxstep*diff;
+            tick = abs(FPreal_CAST(in_p1) - in_y1);
+            if (tick != 0) {
+                in_y1  -= tick;
+                in_y2  += tick;
+                in_px1 -= in_pxstep*tick;
+                in_px2 += in_pxstep*tick;
             }
 
         } while (y1_room || y2_room);
