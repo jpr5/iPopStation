@@ -10,6 +10,15 @@
 #include "album.hh"
 
 /*
+ * TODO:
+ *
+ *   (1) displayAlbum: starting position should be calculated from a.cx/a.cy
+ *
+ *   (2) mousePressEvent/whatever: the active rect for detecting album
+ *       display clicks should be updated as the album is be animated.
+ */
+
+/*
  * Angle of non-focused covers.
 
  *   Size of viewport impacts visibility, and resizing of viewport
