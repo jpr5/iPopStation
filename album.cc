@@ -746,7 +746,6 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
                     f_direction = 0;
 
                     arrangeCovers();
-                    render();
                 }
 
                 d_mode = M_DISPLAY;
