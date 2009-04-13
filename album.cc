@@ -102,14 +102,14 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
     uint32_t *px;
     uint8_t r, g, b, f;
 
-       for (uint16_t y = c_height; y < stop; y++) {
-            px = (uint32_t*)out.scanLine(y);
-            f = (stop-y)*100/stop;
+    for (uint16_t y = c_height; y < stop; y++) {
+        px = (uint32_t*)out.scanLine(y);
+        f = (stop-y)*100/stop;
 
         for (uint16_t x = 0; x < c_width; x++) {
-            r = (qRed(px[x])   * f) / 100;
-            g = (qGreen(px[x]) * f) / 100;
-            b = (qBlue(px[x])  * f) / 100;
+            r = qRed(px[x])   * f / 100;
+            g = qGreen(px[x]) * f / 100;
+            b = qBlue(px[x])  * f / 100;
             px[x] = qRgb(r, g, b);
         }
     }
@@ -251,21 +251,22 @@ void AlbumBrowser::renderDisplay(void) {
      * to leave room for other stuff.  If so, should be some % of
      * current size, maintaining existing aspect ratio.
      */
+
 #if TEST
     uint16_t x_lim = qMin(buffer.size().width(), bg.size().width());
     uint16_t y_lim = qMin(buffer.size().height(), bg.size().height());
 
     uint32_t *px_in, *px_out;
-    uint8_t r, g, b;
+    uint8_t r, g, b, f = album_x * 100 / orig_x;
 
     for (uint16_t y = 0; y < y_lim; y++) {
         px_in  = (uint32_t*)bg.scanLine(y);
         px_out = (uint32_t*)buffer.scanLine(y);
 
         for (uint16_t x = 0; x < x_lim; x++) {
-            r = qRed(px_in[x])   * album_x / orig_x;
-            g = qGreen(px_in[x]) * album_x / orig_x;
-            b = qBlue(px_in[x])  * album_x / orig_x;
+            r = qRed(px_in[x])   * f / 100;
+            g = qGreen(px_in[x]) * f / 100;
+            b = qBlue(px_in[x])  * f / 100;
             px_out[x] = qRgb(r,g,b);
         }
     }
@@ -487,16 +488,13 @@ void AlbumBrowser::animateDisplay(void) {
      * and margins eventually around everything.
      */
 
-    static const int16_t target_x = 3, target_y = 3;
+    static const uint16_t target_x = 3, target_y = 3;
 
     uint16_t incr_x = (orig_x - target_x) / 10;
     uint16_t incr_y = (orig_y - target_y) / 10;
 
-    album_x -= qMax(incr_x, (uint16_t)1);
-    album_y -= qMax(incr_y, (uint16_t)1);
-
-    album_x = qMax(album_x, target_x);
-    album_y = qMax(album_y, target_y);
+    album_x = (album_x > incr_x) ? (album_x - incr_x) : target_x;
+    album_y = (album_y > incr_y) ? (album_y - incr_y) : target_y;
 
     LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_y);
 
