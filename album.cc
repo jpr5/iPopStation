@@ -12,10 +12,8 @@
 /*
  * TODO:
  *
- *   (1) displayAlbum: starting position should be calculated from a.cx/a.cy
- *
- *   (2) mousePressEvent/whatever: the active rect for detecting album
- *       display clicks should be updated as the album is be animated.
+ *   - mousePressEvent/whatever: the active rect for detecting album
+ *     display clicks should be updated as the album is be animated.
  */
 
 /*
@@ -754,7 +752,6 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
                 displayAlbum();
             }
 
-            doRender();
             doAnimate();
 
         } break;
