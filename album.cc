@@ -137,13 +137,7 @@ void AlbumBrowser::displayAlbum(void) {
      */
 
     bg    = buffer.copy();
-    cover = currentCover().image;
-
-    uint16_t offset = cover.size().height() / 6;
-
-    //    cover = cover.copy(0, offset, cover.size().width(), c_height + c_height/3);
-    cover = cover.copy(0, offset, cover.size().width(), offset*5);
-
+    cover = currentCover().image.copy(0, 0, cover.size().width(), cover.size().height());
 
     /*
      * Calculate initial position on-screen, which we'll eventually
@@ -155,7 +149,6 @@ void AlbumBrowser::displayAlbum(void) {
     album_x = orig_x = (buffer.size().width() - cs.width()) / 2;
     album_y = orig_y = (buffer.size().height() - cs.height()) / 2;
 }
-
 
 void AlbumBrowser::arrangeCovers(int32_t factor) {
     AlbumCover *a;
