@@ -70,43 +70,39 @@ void AlbumCover::process(uint16_t c_width, uint16_t c_height) {
 
     image = image.scaled(c_width, c_height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 
-    QImage out(c_width, c_height*2, QImage::Format_RGB32);
-    QPainter p(&out);
-
-    uint16_t padding = c_height/3;
-
     /*
-     * TODO: Don't draw the entire image a second time; limit it to
-     * half maybe?  and/or make it equivalent to the top-level pad.
-     * Hopefully everything else will automatically do the
-     * faux-transparency and rendering correctly.
+     * Calculate the minumum size(height) of the reflection we want to
+     * put into the image and allocate.
      */
 
-    p.translate(0, padding);
+    uint16_t reflection_height = c_height*2/3;
+    uint16_t total_height      = c_height + 1 + reflection_height;
+
+    QImage out(c_width, total_height, QImage::Format_RGB32);
+    QPainter p(&out);
+
     p.drawImage(0, 0, image);
-    p.translate(0, c_height);
-    p.drawImage(0, 0, image.mirrored(false, true));
+    p.translate(0, c_height+1);
+    p.drawImage(0, 0, image.mirrored(false, true), 0, 0, c_width, reflection_height);
 
     p.end();
 
     /*
      * Faux alpha blend the bottom vertically-flipped portion.
-     *
-     * NOTE: Don't fuck with this syntax, the transient float (%
-     * strength) will stop working. :-(
      */
 
     uint16_t stop = out.size().height();
     uint32_t *px;
-    uint8_t r, g, b;
+    uint8_t r, g, b, f;
 
-    for (uint16_t y = padding+c_height; y < stop; y++) {
-        px = (uint32_t*)out.scanLine(y);
+       for (uint16_t y = c_height; y < stop; y++) {
+            px = (uint32_t*)out.scanLine(y);
+            f = (stop-y)*100/stop;
+
         for (uint16_t x = 0; x < c_width; x++) {
-            r = qRed(px[x])   * (stop - y) / stop;
-            g = qGreen(px[x]) * (stop - y) / stop;
-            b = qBlue(px[x])  * (stop - y) / stop;
-
+            r = (qRed(px[x])   * f) / 100;
+            g = (qGreen(px[x]) * f) / 100;
+            b = (qBlue(px[x])  * f) / 100;
             px[x] = qRgb(r, g, b);
         }
     }
@@ -394,33 +390,59 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
             rect.setLeft(x);
         flag = true;
 
-        int32_t out_y1  = h/2;
+        /*
+         * Start drawing covers to the middle buffer, with a slight
+         * offset (.3 of cover height).
+        */
+        int32_t out_y1  = h/2 - c_height/3;
         int32_t out_y2  = out_y1 + 1;
         QRgb *out_px1   = (QRgb*)(buffer.scanLine(out_y1)) + x;
         QRgb *out_px2   = (QRgb*)(buffer.scanLine(out_y2)) + x;
         QRgb out_pxstep = out_px2 - out_px1;
 
-        int32_t in_x   = column;
-        int32_t in_y1  = (sh/2);
-        int32_t in_y2  = in_y1 + 1;
+        /*
+         * Start drawning from center of cover size (rather than image
+         * size), which assumes no padding but still works if there's
+         * other stuff (like a reflection) beneath.
+         */
+
+        int32_t in_x  = column;
+        int32_t in_y1 = c_width/2;
+        int32_t in_y2 = in_y1 + 1;
         QRgb *in_px1   = (QRgb*)(src.scanLine(in_y1)) + in_x;
         QRgb *in_px2   = (QRgb*)(src.scanLine(in_y2)) + in_x;
         QRgb in_pxstep = in_px2 - in_px1;
 
         int16_t dy = dist / h;
-        uint16_t diff;
 
         int32_t in_p1 = in_y1*FPreal_ONE - dy/2;
         int32_t in_p2 = in_y1*FPreal_ONE + dy/2;
 
-        while ((out_y1 >= 0 && out_y2 < h) && (in_p1  >= 0)) {
-            *out_px1 = *in_px1;
-            *out_px2 = *in_px2;
+        /*
+         * Loop over drawing, knowing that it's probably that we'll
+         * hit one end of a cover's scanlines before the other (top
+         * vs. bottom).
+         */
 
-            out_y1--;
-            out_y2++;
-            out_px1 -= out_pxstep;
-            out_px2 += out_pxstep;
+        uint16_t diff;
+        bool y1_room, y2_room;
+
+        do {
+
+            y1_room = (in_y1 >= 0 && out_y1 >= 0);
+            y2_room = (in_y2 < sh && out_y2 < h);
+
+            if (y1_room) {
+                *out_px1 = *in_px1;
+                out_y1--;
+                out_px1 -= out_pxstep;
+            }
+
+            if (y2_room) {
+                *out_px2 = *in_px2;
+                out_y2++;
+                out_px2 += out_pxstep;
+            }
 
             in_p1 -= dy;
             in_p2 += dy;
@@ -432,7 +454,8 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
                 in_y2  += diff;
                 in_px2 += in_pxstep*diff;
             }
-        }
+
+        } while (y1_room || y2_room);
     }
 
     rect.setTop(0);
