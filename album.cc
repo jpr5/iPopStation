@@ -155,7 +155,7 @@ void AlbumBrowser::displayAlbum(void) {
 
     QSize cs = coverSize();
 
-    album_x = orig_x = (buffer.size().width() - cs.width()) / 2;
+    album_x = orig_x = (buffer.size().width() - cs.width())   / 2;
     album_y = orig_y = (buffer.size().height() - cs.height()) / 2;
 }
 
@@ -396,7 +396,7 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
          * Start drawing covers to the middle buffer, with a slight
          * offset (.3 of cover height).
         */
-        int32_t out_y1  = h/2 - c_height/3;
+        int32_t out_y1  = h/2;
         int32_t out_y2  = out_y1 + 1;
         QRgb *out_px1   = (QRgb*)(buffer.scanLine(out_y1)) + x;
         QRgb *out_px2   = (QRgb*)(buffer.scanLine(out_y2)) + x;
@@ -409,7 +409,7 @@ QRect AlbumBrowser::renderCover(AlbumCover &a, int16_t lb, int16_t rb) {
          */
 
         int32_t in_x  = column;
-        int32_t in_y1 = c_width/2;
+        int32_t in_y1 = c_height/2;
         int32_t in_y2 = in_y1 + 1;
         QRgb *in_px1   = (QRgb*)(src.scanLine(in_y1)) + in_x;
         QRgb *in_px2   = (QRgb*)(src.scanLine(in_y2)) + in_x;
@@ -494,15 +494,15 @@ void AlbumBrowser::animateDisplay(void) {
     uint16_t incr_x = (orig_x - target_x) / 10;
     uint16_t incr_y = (orig_y - target_y) / 10;
 
-    album_x -= incr_x;
-    album_y -= incr_y;
+    album_x -= qMax(incr_x, (uint16_t)1);
+    album_y -= qMax(incr_y, (uint16_t)1);
 
     album_x = qMax(album_x, target_x);
     album_y = qMax(album_y, target_y);
 
     LOG.debug("album_x = %u (-%u), album_y = %u (-%u)", album_x, incr_x, album_y, incr_y);
 
-    if (album_x == target_x || album_y == target_y)
+    if (album_x == target_x && album_y == target_y)
         doAnimate(0);
 
     doRender();
@@ -754,7 +754,9 @@ void AlbumBrowser::mousePressEvent(QMouseEvent *e) {
                 displayAlbum();
             }
 
+            doRender();
             doAnimate();
+
         } break;
 
         case M_DISPLAY: {
