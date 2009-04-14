@@ -148,14 +148,24 @@ void AlbumBrowser::displayAlbum(void) {
     cover = currentCover().image.copy(0, 0, cover.size().width(), cover.size().height());
 
     /*
-     * Calculate initial position on-screen, and derive x/y slope
-     * components & x_incr for each transition (10% per iteration).
+     * Calculate initial position on-screen (should mimic whatever
+     * renderBrowse() would do for c_focus), and derive x/y slope
+     * components + x_incr for each animation transition (10% per
+     * iteration).
      */
 
     QSize cs = coverSize();
 
     d_albumx = (buffer.size().width() - cs.width())   / 2;
     d_albumy = (buffer.size().height() - cs.height()) / 2;
+
+    /*
+     * Initial target is upper-left 3x3 px margin, but the scale/size
+     * and placement should be based on the overall size of the buffer
+     * and margins eventually around everything.
+     */
+
+    d_targetx = d_targety = 3;
 
     d_sy = d_albumy - d_targety;
     d_sx = d_albumx - d_targetx;
@@ -491,15 +501,13 @@ void AlbumBrowser::animateDisplay(void) {
 
     /*
      * For now, transition album in 10% increments on X, using the
-     * slope to derive Y. Initial target is upper-left 3x3 px margin,
-     * but the scale/size and placement should be based on the overall
-     * size of the buffer and margins eventually around everything.
+     * slope to derive Y.
      */
 
-    LOG.debug("animate: [-%u] d_albumx = %u, d_albumy = %u", d_dx, d_albumx, d_albumy);
-
     d_albumx = qMax(d_albumx - d_dx, (int)d_targetx);
-    d_albumy = qMax(d_sy * d_albumx / d_sx, (int)d_targetx);
+    d_albumy = qMax(d_sy * d_albumx / d_sx, (int)d_targety);
+
+    LOG.debug("animate: [-%u] d_albumx = %u, d_albumy = %u", d_dx, d_albumx, d_albumy);
 
     if (d_albumx == d_targetx && d_albumy == d_targety)
         doAnimate(false);
