@@ -165,7 +165,7 @@ void AlbumBrowser::displayAlbum(void) {
      * and margins eventually around everything.
      */
 
-    d_targetx = d_targety = 3;
+    d_targetx = d_targety = 5;
 
     d_sy = d_albumy - d_targety;
     d_sx = d_albumx - d_targetx;
@@ -267,6 +267,15 @@ void AlbumBrowser::renderDisplay(void) {
      * current size, maintaining existing aspect ratio.
      */
 
+    QPainter p(&buffer);
+
+
+
+
+    /*
+     * Currently transitioning.
+     */
+
 #if TEST
     uint16_t x_lim = qMin(buffer.size().width(), bg.size().width());
     uint16_t y_lim = qMin(buffer.size().height(), bg.size().height());
@@ -289,7 +298,34 @@ void AlbumBrowser::renderDisplay(void) {
     buffer.fill(Qt::black);
 #endif
 
-    QPainter p(&buffer);
+    if (d_albumx == d_targetx && d_albumy == d_targety) {
+
+        /*
+         * This is our "final" render, animation should be in position
+         * so draw the polish & navigation elements.
+         *
+         * TODO: come up with a better way to "initialize" drawing of
+         * static elements that we don't have to worry about being
+         * overwritten by the manual animation (wish we had sprites).
+         */
+
+        QPen border_pen(Qt::blue, 2, Qt::SolidLine, Qt::FlatCap, Qt::BevelJoin);
+        QPen text_pen(Qt::white, 1, Qt::SolidLine, Qt::FlatCap, Qt::BevelJoin);
+
+        QRect rect(2, 2, buffer.size().width()-3, buffer.size().height()-3);
+        p.setPen(border_pen);
+        p.drawRect(rect);
+
+        QFont font("Times", 12, QFont::Normal);
+        p.setPen(text_pen);
+        p.setFont(font);
+        p.drawText(c_width + 50, 50, "You all should suckit, bitches.");
+    }
+
+    /*
+     * Finally, draw the album cover.
+     */
+
     p.drawImage(QPoint(d_albumx, d_albumy), cover);
 }
 
