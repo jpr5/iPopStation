@@ -686,8 +686,13 @@ void AlbumBrowser::resizeView(const QSize &s, bool reset) {
 
     LOG.puke("d_lb = %u, d_rb = %u", d_lb, d_rb);
 
-    if (d_mode == M_BROWSE)
-        prepRender(reset);
+    /*
+     * Regardless of d_mode, we need to update the ray info --
+     * otherwise, if we're displaying an album then returning from
+     * that will render with the old size values.
+     */
+
+    prepRender(reset);
 
     render();
 }
