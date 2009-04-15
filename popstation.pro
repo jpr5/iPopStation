@@ -12,4 +12,3 @@ INCLUDEPATH += .
 # Input
 HEADERS += album.hh render.hh fpmath.hh logger.hh
 SOURCES += album.cc render.cc main.cc logger.cc
-

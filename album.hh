@@ -91,6 +91,8 @@ class AlbumBrowser : public AsyncRender {
     AlbumBrowser(QWidget * = 0);
     ~AlbumBrowser(void);
 
+    bool init(void);
+
     bool addCover(const QString &);
     void addCover(const QImage &, const QString & = "");
     void loadCovers(QList<QString> &);

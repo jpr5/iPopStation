@@ -6,9 +6,6 @@
 #include <string.h>
 
 #include <QApplication>
-#include <QDir>
-#include <QFileInfo>
-#include <QSplashScreen>
 
 #include "ps.hh"
 #include "logger.hh"
@@ -20,10 +17,10 @@ int main(int argc, char **argv) {
     char const *const arg = "-qws";
     argv[argc++] = strdup(arg);
 
-    QApplication a(argc, argv);
+    QApplication app(argc, argv);
 #if !TEST
-    QApplication::changeOverrideCursor(QCursor(Qt::BlankCursor));
-    QApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
+    app.changeOverrideCursor(QCursor(Qt::BlankCursor));
+    app.setOverrideCursor(QCursor(Qt::BlankCursor));
 #endif
 
     /*
@@ -32,61 +29,25 @@ int main(int argc, char **argv) {
 
     LOG.program("ps");
     LOG.level(LOG_DEBUG);
-    a.installEventFilter(&LOG);
+    app.installEventFilter(&LOG);
 
     /*
-     * Get the splash screen going.
+     * Initialize the main widget (AlbumBrowser), and show it.
      */
 
-#if TEST
-    QSize screenSize(800, 400);
-#else
-    QSize screenSize(320, 240);
-#endif
-
-    QPixmap pixmap(screenSize);
-    pixmap.fill(Qt::black);
-
-    QSplashScreen splash(pixmap);
-    splash.show();
-    splash.showMessage("Booting...", Qt::AlignLeft, Qt::white);
-
-    QDir dir = QDir::current();
-    if (!dir.cd("pics"))
-        LOG.warn("unable to cd to pics dir, using current");
-
-    dir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
-
-    QFileInfoList list = dir.entryInfoList();
-    if (list.empty()) {
-        LOG.error("no pics in dir %s", dir.path().toAscii().data());
+    AlbumBrowser ab;
+    if (!ab.init()) {
+        LOG.error("unable to initialize album browser, bailing");
         return 1;
     }
 
-    AlbumBrowser *albumBrowser = new AlbumBrowser;
-
-    foreach (QFileInfo i, list) {
-        QString msg = "Loaded %1", file = i.absoluteFilePath();
-
-        if (albumBrowser->addCover(file)) {
-            LOG.puke("loaded %s", (const char *)file.toAscii());
-            splash.showMessage(msg.arg(file), Qt::AlignLeft, Qt::white);
-        }
-    }
-
-    albumBrowser->setWindowTitle("PopStation");
-    albumBrowser->resize(screenSize);
-    albumBrowser->setCoverSize(QSize(130,175));
-
 #if TEST
-    albumBrowser->show();
+    ab.show();
 #else
-    albumBrowser->showFullScreen();
+    ab.showFullScreen();
 #endif
 
-    splash.finish(albumBrowser);
+    LOG.info("running", LOG.program());
 
-    LOG.info("%s running", LOG.program());
-
-    return a.exec();
+    return app.exec();
 }

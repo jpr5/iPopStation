@@ -2,6 +2,9 @@
  * $Id$
  */
 
+#include <QDir>
+#include <QFileInfo>
+#include <QSplashScreen>
 #include <QPainter>
 #include <QResizeEvent>
 
@@ -137,6 +140,59 @@ AlbumBrowser::AlbumBrowser(QWidget *parent) : AsyncRender(parent) {
 
 AlbumBrowser::~AlbumBrowser(void) {
 }
+
+bool AlbumBrowser::init(void) {
+#if TEST
+    QSize screenSize(800, 400);
+#else
+    QSize screenSize(320, 240);
+#endif
+
+    /*
+     * Splash screen.
+     */
+
+    QPixmap pixmap(screenSize);
+    pixmap.fill(Qt::black);
+
+    QSplashScreen splash(pixmap);
+    splash.show();
+    splash.showMessage("Booting...", Qt::AlignLeft, Qt::white);
+
+    QDir dir = QDir::current();
+    if (!dir.cd("pics"))
+        LOG.warn("unable to cd to pics dir, using current");
+
+    dir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
+
+    QFileInfoList list = dir.entryInfoList();
+    if (list.empty()) {
+        LOG.error("no pics in dir %s", dir.path().toAscii().data());
+        return false;
+    }
+
+    foreach (QFileInfo i, list) {
+        QString msg = "Loaded %1", file = i.absoluteFilePath();
+
+        if (addCover(file)) {
+            LOG.puke("loaded %s", (const char *)file.toAscii());
+            splash.showMessage(msg.arg(file), Qt::AlignLeft, Qt::white);
+        }
+    }
+
+    splash.finish(this);
+
+    /*
+     * Set some dimensions and title.
+     */
+
+    setCoverSize(QSize(130,175));
+    setWindowTitle("PopStation");
+    resize(screenSize);
+
+    return true;
+}
+
 
 void AlbumBrowser::displayAlbum(void) {
     /*
