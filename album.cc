@@ -328,30 +328,8 @@ void AlbumBrowser::renderDisplay(void) {
     /*
      * Currently transitioning.
      */
-    buffer.fill(Qt::black);
 
-#if TEST
-    uint16_t x_lim = qMin(buffer.size().width(), bg.size().width());
-    uint16_t y_lim = qMin(buffer.size().height(), bg.size().height());
 
-    uint32_t *px_in, *px_out;
-    uint8_t r, g, b, f = d_albumx * 100 / d_sx;
-
-    for (uint16_t y = 0; y < y_lim; y++) {
-        px_in  = (uint32_t*)bg.scanLine(y);
-        px_out = (uint32_t*)buffer.scanLine(y);
-
-        for (uint16_t x = 0; x < x_lim; x++) {
-            if (px_in[x] == 0xFF000000)
-                continue;
-
-            r = qRed(px_in[x])   * f / 100;
-            g = qGreen(px_in[x]) * f / 100;
-            b = qBlue(px_in[x])  * f / 100;
-            px_out[x] = qRgb(r,g,b);
-        }
-    }
-#endif
 
     if (d_albumx == d_targetx && d_albumy == d_targety) {
 
@@ -364,6 +342,8 @@ void AlbumBrowser::renderDisplay(void) {
          * overwritten by the manual animation (wish we had sprites).
          */
 
+        buffer.fill(Qt::black);
+
         QPen border_pen(Qt::blue, 2, Qt::SolidLine, Qt::FlatCap, Qt::BevelJoin);
         QPen text_pen(Qt::white, 1, Qt::SolidLine, Qt::FlatCap, Qt::BevelJoin);
 
@@ -375,6 +355,38 @@ void AlbumBrowser::renderDisplay(void) {
         p.setPen(text_pen);
         p.setFont(font);
         p.drawText(c_width + 50, 50, "You all should suckit, bitches.");
+
+    } else {
+
+        uint16_t x_lim = qMin(buffer.size().width(), bg.size().width());
+        uint16_t y_lim = qMin(buffer.size().height(), bg.size().height());
+
+        uint32_t *in_px     = (uint32_t*)bg.scanLine(0);
+        uint32_t in_pxstep  = (uint32_t*)bg.scanLine(1) - in_px;
+
+        uint32_t *out_px    = (uint32_t*)buffer.scanLine(0);
+        uint32_t out_pxstep = (uint32_t*)buffer.scanLine(1) - out_px;
+
+        uint8_t r, g, b, f = d_albumx * 100 / d_sx;
+
+        while (y_lim) {
+            for (uint16_t x = 0; x < x_lim; x++) {
+                if (in_px[x] == 0xFF000000)
+                    continue;
+
+                r = qRed(in_px[x])   * f / 100;
+                g = qGreen(in_px[x]) * f / 100;
+                b = qBlue(in_px[x])  * f / 100;
+
+                out_px[x] = qRgb(r,g,b);
+            }
+
+            in_px  += in_pxstep;
+            out_px += out_pxstep;
+
+            y_lim--;
+        }
+
     }
 
     /*
