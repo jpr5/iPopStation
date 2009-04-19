@@ -356,6 +356,16 @@ void AlbumBrowser::renderDisplay(void) {
 
     } else {
 
+        /*
+         * As we faux-fade, every loop iteration will appear to
+         * accelerate, more noticably in the final ones, because we
+         * don't waste the calculations on pixels that are already
+         * black (so some pixels fade to black sooner than others).
+         *
+         * This will give the user the impression of a scaled
+         * acceleration animation effect.
+         */
+
         uint16_t x_lim = qMin(buffer.size().width(), bg.size().width());
         uint16_t y_lim = qMin(buffer.size().height(), bg.size().height());
 
