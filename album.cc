@@ -329,8 +329,6 @@ void AlbumBrowser::renderDisplay(void) {
      * Currently transitioning.
      */
 
-
-
     if (d_albumx == d_targetx && d_albumy == d_targety) {
 
         /*
@@ -364,12 +362,9 @@ void AlbumBrowser::renderDisplay(void) {
         uint32_t *in_px     = (uint32_t*)bg.scanLine(0);
         uint32_t in_pxstep  = (uint32_t*)bg.scanLine(1) - in_px;
 
-        uint32_t *out_px    = (uint32_t*)buffer.scanLine(0);
-        uint32_t out_pxstep = (uint32_t*)buffer.scanLine(1) - out_px;
-
         uint8_t r, g, b, f = d_albumx * 100 / d_sx;
 
-        while (y_lim) {
+        while (y_lim--) {
             for (uint16_t x = 0; x < x_lim; x++) {
                 if (in_px[x] == 0xFF000000)
                     continue;
@@ -378,15 +373,13 @@ void AlbumBrowser::renderDisplay(void) {
                 g = qGreen(in_px[x]) * f / 100;
                 b = qBlue(in_px[x])  * f / 100;
 
-                out_px[x] = qRgb(r,g,b);
+                in_px[x] = qRgb(r,g,b);
             }
 
             in_px  += in_pxstep;
-            out_px += out_pxstep;
-
-            y_lim--;
         }
 
+        p.drawImage(0, 0, bg);
     }
 
     /*
