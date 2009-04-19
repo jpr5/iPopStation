@@ -325,12 +325,10 @@ void AlbumBrowser::renderDisplay(void) {
 
     QPainter p(&buffer);
 
-
-
-
     /*
      * Currently transitioning.
      */
+    buffer.fill(Qt::black);
 
 #if TEST
     uint16_t x_lim = qMin(buffer.size().width(), bg.size().width());
@@ -344,14 +342,15 @@ void AlbumBrowser::renderDisplay(void) {
         px_out = (uint32_t*)buffer.scanLine(y);
 
         for (uint16_t x = 0; x < x_lim; x++) {
+            if (px_in[x] == 0xFF000000)
+                continue;
+
             r = qRed(px_in[x])   * f / 100;
             g = qGreen(px_in[x]) * f / 100;
             b = qBlue(px_in[x])  * f / 100;
             px_out[x] = qRgb(r,g,b);
         }
     }
-#else
-    buffer.fill(Qt::black);
 #endif
 
     if (d_albumx == d_targetx && d_albumy == d_targety) {
