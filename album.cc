@@ -369,8 +369,8 @@ void AlbumBrowser::renderDisplay(void) {
         uint16_t x_lim = qMin(buffer.size().width(), bg.size().width());
         uint16_t y_lim = qMin(buffer.size().height(), bg.size().height());
 
-        uint32_t *in_px     = (uint32_t*)bg.scanLine(0);
-        uint32_t in_pxstep  = (uint32_t*)bg.scanLine(1) - in_px;
+        uint32_t *in_px     = (uint32_t*)bg.bits();
+        uint32_t in_pxstep  = bg.bytesPerLine() / 4;
 
         uint8_t r, g, b, f = d_albumx * 100 / d_sx;
 
